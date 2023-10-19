@@ -1,0 +1,78 @@
+---
+title: "Untitled"
+output: html_document
+date: '2023-09-28'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+```
+
+```{r}
+head(Terzan5)
+show(Terzan5)
+```
+
+```{r}
+plot(Terzan5$x,Terzan5$y)
+```
+```{r}
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+head(T5)
+```
+
+
+```{r}
+qplot(x,y, data = T5)
+```
+```{r}
+ggplot(T5, aes(x,y))+ geom_point(shape = ".")
+```
+
+```{r}
+ggplot(T5, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+
+```{r}
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+head(POI1)
+```
+```{r}
+ggplot(POI1, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+```{r}
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+head(POI2)
+```
+```{r}
+ggplot(POI2, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+```{r}
+Central <- T5 %>%
+  filter(x>4085 & x< 4150 & y>4060 & y<4125)
+head(Central)
+ggplot(Central, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+```{r}
+POI3 <- T5 %>%
+  filter(x>4120 & x< 4140 & y>4100 & y<4120)
+head(POI3)
+ggplot(POI3, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
