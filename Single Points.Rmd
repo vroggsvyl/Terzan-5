@@ -1,0 +1,59 @@
+---
+title: "POI1"
+output: html_document
+date: '2023-10-12'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(fitdistrplus)
+```
+
+```{r}
+head(POI1)
+head(POI2)
+```
+
+```{r}
+ggplot(POI1, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+ggplot(POI2, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+
+```{r}
+#setting up lines
+
+line0 <- POI2 %>%
+  filter(y>4048.5 & y< 4049.5)
+line1 <- POI2 %>%
+  filter(y>4049.5 & y< 4050.5)
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+line3 <- POI2 %>%
+  filter(y>4051.5 & y< 4052.5)
+line4 <- POI2 %>%
+  filter(y>4052.5 & y< 4053.5)
+line5 <- POI2 %>%
+  filter(y>4053.5 & y< 4054.5)
+line6 <- POI2 %>%
+  filter(y>4054.5 & y< 4055.4)
+
+#historgrams
+plotdist(line0$x)
+plotdist(line1$x)
+plotdist(line2$x)
+plotdist(line3$x)
+plotdist(line4$x)
+plotdist(line5$x)
+plotdist(line6$x)
+
+```
+
