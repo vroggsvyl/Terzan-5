@@ -45,6 +45,8 @@ line5 <- POI2 %>%
   filter(y>4053.5 & y< 4054.5)
 line6 <- POI2 %>%
   filter(y>4054.5 & y< 4055.4)
+lineback <- POI2 %>%
+  filter(y>4055 & y< 4060)
 
 #historgrams
 plotdist(line0$x)
@@ -54,6 +56,18 @@ plotdist(line3$x)
 plotdist(line4$x)
 plotdist(line5$x)
 plotdist(line6$x)
+plotdist(lineback$x)
 
+```
+```{r}
+mid <- fitdist(line3$x, "weibull")
+summary(mid)
+mid2 <- fitdist(line3$x, "gaussian")
+summary(mid2)
+```
+```{r}
+par(mfrow = c(1,2))
+denscomp(mid)
+qqcomp(mid)
 ```
 
