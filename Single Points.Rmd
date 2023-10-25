@@ -44,30 +44,135 @@ line4 <- POI2 %>%
 line5 <- POI2 %>%
   filter(y>4053.5 & y< 4054.5)
 line6 <- POI2 %>%
-  filter(y>4054.5 & y< 4055.4)
+  filter(y>4054.5 & y< 4055.5)
 lineback <- POI2 %>%
   filter(y>4055 & y< 4060)
 
-#historgrams
-plotdist(line0$x)
-plotdist(line1$x)
-plotdist(line2$x)
-plotdist(line3$x)
-plotdist(line4$x)
-plotdist(line5$x)
-plotdist(line6$x)
-plotdist(lineback$x)
-
-```
-```{r}
-mid <- fitdist(line3$x, "weibull")
-summary(mid)
-mid2 <- fitdist(line3$x, "gaussian")
-summary(mid2)
-```
-```{r}
-par(mfrow = c(1,2))
-denscomp(mid)
-qqcomp(mid)
+#histograms with superimposed densities
+plotdist(line0$x, histo = TRUE, demp = TRUE)
+plotdist(line1$x, histo = TRUE, demp = TRUE)
+plotdist(line2$x, histo = TRUE, demp = TRUE)
+plotdist(line3$x, histo = TRUE, demp = TRUE)
+plotdist(line4$x, histo = TRUE, demp = TRUE)
+plotdist(line5$x, histo = TRUE, demp = TRUE)
+plotdist(line6$x, histo = TRUE, demp = TRUE)
+plotdist(lineback$x, histo = TRUE, demp = TRUE)
 ```
 
+```{r}
+#Q-Q and P-P plots
+l0 <- fitdist(line0$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l0)
+denscomp(l0)
+qqcomp(l0)
+ppcomp(l0)
+
+l1 <- fitdist(line1$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l1)
+denscomp(l1)
+qqcomp(l1)
+ppcomp(l1)
+
+l2 <- fitdist(line2$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l2)
+denscomp(l2)
+qqcomp(l2)
+ppcomp(l2)
+
+l3 <- fitdist(line3$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l3)
+denscomp(l3)
+qqcomp(l3)
+ppcomp(l3)
+
+l4 <- fitdist(line4$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l4)
+denscomp(l4)
+qqcomp(l4)
+ppcomp(l4)
+
+l5 <- fitdist(line5$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l5)
+denscomp(l5)
+qqcomp(l5)
+ppcomp(l5)
+
+l6 <- fitdist(line6$x, "norm")
+par(mfrow = c(2,2))
+cdfcomp(l6)
+denscomp(l6)
+qqcomp(l6)
+ppcomp(l6)
+
+lb <- fitdist(lineback$x, "unif")
+par(mfrow = c(2,2))
+cdfcomp(lb)
+denscomp(lb)
+qqcomp(lb)
+ppcomp(lb)
+```
+
+```{r}
+band <- POI2 %>%
+  filter(y>4048.5 & y< 4055.5)
+ggplot() + geom_point(mapping = aes(x,y), data = line0, shape =".") + geom_point(mapping = aes(x,y), data = line1, colour = "red", shape =".") + geom_point(mapping = aes(x,y), data = line2, colour = "blue", shape =".") + geom_point(mapping = aes(x,y), data = line3, shape =".") + geom_point(mapping = aes(x,y), data = line4, colour = "blue", shape =".") + geom_point(mapping = aes(x,y), data = line5, colour = "red", shape =".") + geom_point(mapping = aes(x,y), data = line6, shape =".") + coord_fixed()
+```
+
+
+```{r}
+#distribution fitting - t
+l0 <- fitdist(line0$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l0)
+denscomp(l0)
+qqcomp(l0)
+ppcomp(l0)
+
+l1 <- fitdist(line1$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l1)
+denscomp(l1)
+qqcomp(l1)
+ppcomp(l1)
+
+l2 <- fitdist(line2$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l2)
+denscomp(l2)
+qqcomp(l2)
+ppcomp(l2)
+
+l3 <- fitdist(line3$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l3)
+denscomp(l3)
+qqcomp(l3)
+ppcomp(l3)
+
+l4 <- fitdist(line4$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l4)
+denscomp(l4)
+qqcomp(l4)
+ppcomp(l4)
+
+l5 <- fitdist(line5$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l5)
+denscomp(l5)
+qqcomp(l5)
+ppcomp(l5)
+
+l6 <- fitdist(line6$x, "t")
+par(mfrow = c(2,2))
+cdfcomp(l6)
+denscomp(l6)
+qqcomp(l6)
+ppcomp(l6)
+```
