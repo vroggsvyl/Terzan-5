@@ -67,20 +67,8 @@ Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
   d_gamma = 2*amplitude*alpha*((x - mu)^2)*d_A/(chain*gamma^3)
   d_alpha = -amplitude*d_A*log(chain)
   
-  return(d_A, d_mu, d_gamma, d_alpha)
+  return(list(c(d_A, d_mu, d_gamma, d_alpha)))
 }
-  #@staticmethod
-    #def fit_deriv(x, amplitude, x_0, gamma, alpha):
-        #"""One dimensional Moffat model derivative with respect to parameters"""
-
-        #fac = (1 + (x - x_0) ** 2 / gamma ** 2)
-        #d_A = fac ** (-alpha)
-        #d_x_0 = (2 * amplitude * alpha * (x - x_0) * d_A / (fac * gamma ** 2))
-        #d_gamma = (2 * amplitude * alpha * (x - x_0) ** 2 * d_A /
-        #           (fac * gamma ** 3))
-        #d_alpha = -amplitude * d_A * np.log(fac)
-        #return [d_A, d_x_0, d_gamma, d_alpha]
-
 ```
 
 ```{r}
@@ -88,24 +76,42 @@ plot(dat)
 hist(dat)
 ```
 ```{r}
-Moffat1D_Deriv(2, 1, 0, 1, 1)
+dMoffat1D(2, 1, 0, 1, 1)
+x <- c(-10:10)
+plot(dMoffat1D(x, 1, 0, 1, 1), )
+```
+```{r}
+Moffat1D_Deriv(0.5, 1, 0, 1, 1)
 ```
 
 ```{r}
 set.seed(8)
 
-data <- rgamma(1000, 4, 1)
+data <- rgamma(1000, 9, 2)
 plot(data)
 hist(data)
 beta = 2
-alpha = 4
-
-Gamma <- function(x){
-  ((beta^alpha)/factorial(alpha-1))* x^(alpha-1)* exp(-beta*x)}
-plot(Gamma, 0, 25)
-
-optim(c(1), Gamma, method = "L-BFGS-B", lower = 0)
+alpha = 9
 ```
+
+
+```{r}
+Gamma <- function(x, alpha, beta){
+  ((beta^alpha)/factorial(alpha-1))* x^(alpha-1)* exp(-beta*x)
+}
+
+range <- seq(0,25, by=0.1)
+plot(Gamma(range, 9, 2))
+
+#check
+Gamma(5, 9, 2)
+dgamma(5, 9, 2)
+
+#par <- c(1, 4, 2)
+#optim(par, Gamma)
+```
+
+
 ```{r}
 #optim example code
 ## "wild" function , global minimum at about -15.81515
@@ -118,7 +124,5 @@ res <- optim(50, fw, method = "SANN",
 res
 ```
 
-```{r}
-2^2
-```
+
 
