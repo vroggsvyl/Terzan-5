@@ -136,4 +136,21 @@ band <- POI2 %>%
 ggplot() + geom_point(mapping = aes(x,y), data = line0, shape =".") + geom_point(mapping = aes(x,y), data = line1, colour = "red", shape =".") + geom_point(mapping = aes(x,y), data = line2, colour = "blue", shape =".") + geom_point(mapping = aes(x,y), data = line3, shape =".") + geom_point(mapping = aes(x,y), data = line4, colour = "blue", shape =".") + geom_point(mapping = aes(x,y), data = line5, colour = "red", shape =".") + geom_point(mapping = aes(x,y), data = line6, shape =".") + coord_fixed()
 ```
 
+```{r}
+line3.1 <- line3 %>%
+  filter(y>4051.5 & y< 4051.7)
+line3.2 <- line3 %>%
+  filter(y>4051.7 & y< 4051.9)
+line3.3 <- line3 %>%
+  filter(y>4051.9 & y< 4052.1)
+line3.4 <- line3 %>%
+  filter(y>4052.1 & y< 4052.3)
+line3.5 <- line3 %>%
+  filter(y>4052.3 & y< 4052.5)
+```
+
+```{r}
+plotdist(line3.3$x, histo = TRUE, demp = TRUE)
+```
+
 
