@@ -8,6 +8,7 @@ date: '2023-10-12'
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ```{r}
 library(ggplot2)
 library(plotly)
@@ -16,6 +17,17 @@ library(ggpointdensity)
 library(viridis)
 library(tidyr)
 library(fitdistrplus)
+library(rlang)
+```
+
+```{r}
+Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
 ```
 
 ```{r}
@@ -125,54 +137,3 @@ ggplot() + geom_point(mapping = aes(x,y), data = line0, shape =".") + geom_point
 ```
 
 
-```{r}
-#distribution fitting - t
-l0 <- fitdist(line0$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l0)
-denscomp(l0)
-qqcomp(l0)
-ppcomp(l0)
-
-l1 <- fitdist(line1$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l1)
-denscomp(l1)
-qqcomp(l1)
-ppcomp(l1)
-
-l2 <- fitdist(line2$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l2)
-denscomp(l2)
-qqcomp(l2)
-ppcomp(l2)
-
-l3 <- fitdist(line3$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l3)
-denscomp(l3)
-qqcomp(l3)
-ppcomp(l3)
-
-l4 <- fitdist(line4$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l4)
-denscomp(l4)
-qqcomp(l4)
-ppcomp(l4)
-
-l5 <- fitdist(line5$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l5)
-denscomp(l5)
-qqcomp(l5)
-ppcomp(l5)
-
-l6 <- fitdist(line6$x, "t")
-par(mfrow = c(2,2))
-cdfcomp(l6)
-denscomp(l6)
-qqcomp(l6)
-ppcomp(l6)
-```
