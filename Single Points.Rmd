@@ -152,5 +152,19 @@ line3.5 <- line3 %>%
 ```{r}
 plotdist(line3.3$x, histo = TRUE, demp = TRUE)
 ```
+```{r}
+mean(line1$x)
+mean(line2$x)
+mean(line3$x)
+mean(line4$x)
+mean(line5$x)
+mean(POI2$x)
+```
 
+```{r}
+line3.1$x
+mean(line3.1$x)
+trial <- order(line3.1$x)
+plot(dMoffat1D(line3.1$x, 1, mean(line3.1$x), 1, 1))
+```
 

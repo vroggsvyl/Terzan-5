@@ -87,9 +87,9 @@ Moffat1D_Deriv(0.5, 1, 0, 1, 1)
 ```{r}
 set.seed(8)
 
-data <- rgamma(1000, 9, 2)
-plot(data)
-hist(data)
+randata <- rgamma(1000, 9, 2)
+plot(randata)
+hist(randata)
 beta = 2
 alpha = 9
 ```
@@ -101,14 +101,16 @@ Gamma <- function(x, alpha, beta){
 }
 
 range <- seq(0,25, by=0.1)
+
+
 plot(Gamma(range, 9, 2))
+plotdist(randata, demp = TRUE)
 
 #check
 Gamma(5, 9, 2)
 dgamma(5, 9, 2)
 
-#par <- c(1, 4, 2)
-#optim(par, Gamma)
+#res <- optim(c(5,9,2), Gamma)
 ```
 
 
@@ -124,5 +126,16 @@ res <- optim(50, fw, method = "SANN",
 res
 ```
 
+```{r}
+range2 <- seq(-3, 3, by = 0.1)
+
+par(mfrow = c(2,3))
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Default parameters")
+plot(dMoffat1D(range2, 1, 0, 1, 4), main = "Changing alpha")
+plot(dMoffat1D(range2, 1, 1, 1, 1), main = "Changing mu")
+plot(dMoffat1D(range2, 1, 0, 4, 1), main = "Changing gamma")
+plot(dMoffat1D(range2, 4, 0, 1, 1), main = "Changing A")
+plot(dMoffat1D(range2, 4, 1, 4, 4), main = "Changing all")
+```
 
 
