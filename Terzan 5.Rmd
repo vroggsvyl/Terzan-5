@@ -1,6 +1,8 @@
 ---
 title: "Untitled"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 date: '2023-09-28'
 ---
 
