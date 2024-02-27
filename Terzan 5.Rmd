@@ -16,6 +16,7 @@ Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 
 ```
 
 ```{r}
+library(MASS)
 library(ggplot2)
 library(plotly)
 library(readr)
@@ -48,6 +49,9 @@ ggplot(T5, aes(x,y))+ geom_point(shape = ".")
 
 ```{r}
 ggplot(T5, aes(x,y))+ geom_point(shape = ".") + geom_density2d() + coord_fixed()
+```
+```{r}
+ggplot(T5,aes(x,y)) + geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "F", trans = "log", breaks = c(10, 100, 1000, 10000)) + coord_fixed()
 ```
 
 ```{r}

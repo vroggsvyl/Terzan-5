@@ -1,8 +1,21 @@
 ---
 title: "Exploring R"
-output: html_document
-date: "2023-11-01"
+output:
+  word_document: default
+  html_document: default
+date: '2023-11-01'
 ---
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(fitdistrplus)
+library(rlang)
+```
 
 ```{r}
 set.seed(0)
@@ -131,11 +144,13 @@ range2 <- seq(-3, 3, by = 0.1)
 
 par(mfrow = c(2,3))
 plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Default parameters")
-plot(dMoffat1D(range2, 1, 0, 1, 4), main = "Changing alpha")
+plot(dMoffat1D(range2, 1, 0, 1, 2), main = "Changing alpha")
 plot(dMoffat1D(range2, 1, 1, 1, 1), main = "Changing mu")
-plot(dMoffat1D(range2, 1, 0, 4, 1), main = "Changing gamma")
+plot(dMoffat1D(range2, 1, 0, 0.5, 1), main = "Changing gamma")
 plot(dMoffat1D(range2, 4, 0, 1, 1), main = "Changing A")
 plot(dMoffat1D(range2, 4, 1, 4, 4), main = "Changing all")
 ```
+
+
 
 

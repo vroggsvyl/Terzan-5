@@ -1,6 +1,8 @@
 ---
 title: "POI1"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 date: '2023-10-12'
 ---
 
@@ -165,6 +167,6 @@ mean(POI2$x)
 line3.1$x
 mean(line3.1$x)
 trial <- order(line3.1$x)
-plot(dMoffat1D(line3.1$x, 1, mean(line3.1$x), 1, 1))
+#plot(dMoffat1D(trial, 1, mean(line3.1$x), 1, 1))
 ```
 
