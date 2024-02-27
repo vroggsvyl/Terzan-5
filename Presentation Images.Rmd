@@ -1,0 +1,106 @@
+---
+title: "Presentation"
+output:
+  word_document: default
+  html_document: default
+date: '2024-02-24'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(MASS)
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+```
+
+```{r}
+Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+Central <- T5 %>%
+  filter(x>4085 & x< 4150 & y>4060 & y<4125)
+POI3 <- T5 %>%
+  filter(x>4120 & x< 4140 & y>4100 & y<4120)
+
+dMoffat1D <- function(x, amplitude, mu, gamma, alpha){amplitude*(1+((x-mu)/gamma)^2)^-alpha}
+
+Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
+  chain = (1 + (x - mu)^2 / gamma^2)
+  d_A = chain^(-alpha)
+  d_mu = 2*amplitude*alpha*(x - mu)*d_A/(chain*gamma^2)
+  d_gamma = 2*amplitude*alpha*((x - mu)^2)*d_A/(chain*gamma^3)
+  d_alpha = -amplitude*d_A*log(chain)
+  
+  return(list(c(d_A, d_mu, d_gamma, d_alpha)))
+}
+```
+
+
+```{r}
+ggplot(T5, aes(x,y))+ geom_point(shape = ".") +coord_fixed()
+```
+
+
+```{r}
+ggplot(T5,aes(x,y)) + geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + coord_fixed()
+```
+```{r}
+ggplot(POI1, aes(x,y))+ geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + coord_fixed()
+```
+
+```{r}
+ggplot(POI2, aes(x,y))+geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + coord_fixed()
+```
+
+```{r}
+ggplot(Central, aes(x,y))+ geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + coord_fixed()
+```
+```{r}
+ggplot(POI3, aes(x,y))+ geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + coord_fixed()
+```
+
+```{r}
+ggplot(POI1, aes(x,y))+ geom_point(shape = ".", size = 0.5) + coord_fixed()
+```
+
+```{r}
+range2 <- seq(-3, 3, by = 0.1)
+#f(x) = A(1+(x-mu)^2/gamma^2)^-alpha
+
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing mu", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+lines(dMoffat1D(range2, 1, 0.5, 1, 1), type = "l", col = "red")
+lines(dMoffat1D(range2, 1, 1, 1, 1), type = "l", col = "blue")
+lines(dMoffat1D(range2, 1, -1, 1, 1), type = "l", col = "green")
+
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing alpha", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+lines(dMoffat1D(range2, 1, 0, 1, 2), type = "l", col = "red")
+lines(dMoffat1D(range2, 1, 0, 1, 4), type = "l", col = "blue")
+lines(dMoffat1D(range2, 1, 0, 1, 0.5), type = "l", col = "green")
+
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing gamma", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+lines(dMoffat1D(range2, 1, 0, 0.5, 1), type = "l", col = "red")
+lines(dMoffat1D(range2, 1, 0, 2, 1), type = "l", col = "blue")
+lines(dMoffat1D(range2, 1, 0, -1.5, 1), type = "l", col = "green")
+
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing A", , type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 5))
+lines(dMoffat1D(range2, 2, 0, 1, 1), type = "l", col = "red")
+lines(dMoffat1D(range2, 4, 0, 1, 1), type = "l", col = "blue")
+lines(dMoffat1D(range2, 0.5, 0, 1, 1), type = "l", col = "green")
+
+```
+
+```{r}
+plot(dMoffat1D(range2, 0.4, 0, 1, 1), main = "Moffat vs T-Dist", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+lines(dt(range2, 10), type = "l", xlab = "x", ylab = "y", col = "blue")
+```
