@@ -71,7 +71,8 @@ ggplot(POI3, aes(x,y))+ geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1"
 ```
 
 ```{r}
-ggplot(POI1, aes(x,y))+ geom_point(shape = ".", size = 0.5) + coord_fixed()
+ggplot(POI1, aes(x,y))+ geom_point(shape = ".", size = 0.5) + coord_fixed() + geom_hline(yintercept = 4190, col = "red") + geom_hline(yintercept = 4189, col = "red")+ geom_hline(yintercept = 4188, col = "red")+ geom_hline(yintercept = 4187, col = "red")+ geom_hline(yintercept = 4186, col = "red")+ geom_hline(yintercept = 4185, col = "red")
+
 ```
 
 ```{r}
