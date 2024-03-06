@@ -213,7 +213,7 @@ xVal <- seq(min(sampleData), max(sampleData), length = 1000)
 optimisedDens <- gaussian_density(x = xVal, mean = optimized_parameters[1], sd = optimized_parameters[2])
 ```
 
-```{r}
+````{r}
 MoffatNS <- function(parameters, x){
   amplitude <- parameters[1]
   mu <- parameters[2]
@@ -221,6 +221,11 @@ MoffatNS <- function(parameters, x){
   alpha <- parameters[4]
   
   amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+MS <- function(parameters, x){
+  predicted <- MoffatNS(parameters, x)
+  return(sum(predicted))
 }
 
 #Define the function
@@ -235,20 +240,24 @@ Moffat1D <- function(parameters, x){
 }
 
 negLogLike <- function(parameters, x){
-  predictedDens <- MoffatNS(x, parameters)
+  amplitude <- parameters[1]
+  mu <- parameters[2]
+  gamma <- parameters[3]
+  alpha <- parameters[4]
+  predictedDens <- MoffatNS(parameters, x)
   return(-sum(log(predictedDens)))
 }
  
-Moffat1D_Deriv <- function(parameters, x){
+MoffatDeriv <- function(parameters, x){
   amplitude <- parameters[1]
   mu <- parameters[2]
   gamma <- parameters[3]
   alpha <- parameters[4]
   
-  predicted <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+
   d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
-  d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
-  d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
+  d_mu = -2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
+  d_gamma = -2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
   d_alpha = sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
   
   return((c(d_A, d_mu, d_gamma, d_alpha)))
@@ -264,7 +273,7 @@ result <- optim(par = initialGuess, fn = negLogLike, x = sampleData, method = "L
 optimPar <- result$par
 print(optimPar)
 
-result2 <- optim(par = initialGuess, fn = Moffat1D, gr = Moffat1D_Deriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
+result2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
 optimPar2 <- result2$par
 print(optimPar2)
 
@@ -274,6 +283,10 @@ xVal <- seq(min(sampleData), max(sampleData), length = 1000)
 optimisedDens <- MoffatNS(optimPar, xVal)
 
 optDens2 <- MoffatNS(optimPar2, xVal)
+```
+```{r}
+plot(MoffatNS(sampleData, initialGuess))
+plot(MoffatNS(initialGuess, sampleData))
 ```
 ```{r}
 plot(sampleData)
