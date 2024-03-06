@@ -170,71 +170,14 @@ Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
 ```
 
 ```{r}
-#Define the function
-Moffat1D <- function(x, parameters){
-  amplitude <- parameters[1]
-  mu <- parameters[2]
-  gamma <- parameters[3]
-  alpha <- parameters[4]
-  
-  return( amplitude*(1+((x-mu)/gamma)^2)^-alpha)
-}
-
-#Define the negative log likelihood
-negativeLogLikelihood <- function(parameters, x, y){
-  predicted <- Moffat1D(x, parameters)
-  return(-sum(log(predicted)+ y/predicted))
-}
-
-#set initial guesses
-initialGuess <- c(amplitude = 1, mu = 0, gamma = 1, alpha = 1)
-#set bounds
-lowerBounds <- c(0,-Inf, 0, 0)
-
-#Generating some random sample data
-set.seed(1234)
-x <- seq(-5, 5, length = 100)
-y <- Moffat1D(x, initialGuess) + rnorm(length(x), sd = 0.2)
-plot(x,y)
-
-#Optimise
-result <- optim(par = initialGuess, fn = negativeLogLikelihood, x = x, y = y, method = "L-BFGS-B", lower = lowerBounds)
-print(result$par)
-
-```
-
-```{r}
-#plot curve to optimised parameters
-optimisedPar <- result$par
-xVal <- seq(min(x), max(x), length = 100)
-#f(x)
-yVal <- Moffat1D(xVal, optimisedPar)
-
-plot(x,y, main = "Optimised Function", xlab = "x", ylab = "f(x)", pch = 16)
-lines(xVal, yVal, col = "red", lwd = 2)
-legend("topright", legend = "Optimised Function", col = "red", lty = 1, lwd = 2)
-```
-
-```{r}
-#Fitting to the data
+#data to fit to
 plotdist(line2$x)
 plot(line2)
 
 xl2 <- line2$x
 plot(xl2)
-
-resultl2 <- optim(par = initialGuess, fn = negativeLogLikelihood, x = xl2, y = yl2, method = "L-BFGS-B", lower = lowerBounds)
-
-#plot curve to optimised parameters
-optimisedParl2 <- resultl2$par
-xVall2 <- seq(min(xl2), max(xl2), length = 100)
-#f(x)
-yVall2 <- Moffat1D(xVal, optimisedParl2)
-
-plot(xl2,yl2, main = "Optimised Function", xlab = "x", ylab = "f(x)", pch = 16)
-lines(xVall2, yVall2, col = "red", lwd = 2)
-legend("topright", legend = "Optimised Function", col = "red", lty = 1, lwd = 2)
 ```
+
 ```{r}
 # Define the Gaussian density function
 gaussian_density <- function(x, mean, sd) {
@@ -255,8 +198,8 @@ initial_guess <- c(mean = 0, sd = 1)
 
 # Generate some sample data
 set.seed(123)
-sample_data <- rnorm(1000, mean = 2, sd = 1)
-plot(sample_data)
+sampleData <- rnorm(1000, mean = 2, sd = 1)
+plot(sampleData)
 
 # Optimize the negative log-likelihood function
 result <- optim(par = initial_guess, fn = negative_log_likelihood, x = sample_data, method = "Nelder-Mead")
@@ -268,11 +211,7 @@ print(optimized_parameters)
 #plot time
 xVal <- seq(min(sampleData), max(sampleData), length = 1000)
 optimisedDens <- gaussian_density(x = xVal, mean = optimized_parameters[1], sd = optimized_parameters[2])
-plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
-legend("topright", legend = "Optimised Density", lty = 1)
 ```
-
-
 
 ```{r}
 MoffatNS <- function(parameters, x){
@@ -291,11 +230,12 @@ Moffat1D <- function(parameters, x){
   gamma <- parameters[3]
   alpha <- parameters[4]
   
-  return(amplitude*(1+((x-mu)^2/gamma^2))^(-alpha))
+  predicted <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  return(sum(predicted))
 }
 
 negLogLike <- function(parameters, x){
-  predictedDens <- Moffat1D(x, parameters)
+  predictedDens <- MoffatNS(x, parameters)
   return(-sum(log(predictedDens)))
 }
  
@@ -305,6 +245,7 @@ Moffat1D_Deriv <- function(parameters, x){
   gamma <- parameters[3]
   alpha <- parameters[4]
   
+  predicted <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
   d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
   d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
   d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
@@ -316,41 +257,68 @@ Moffat1D_Deriv <- function(parameters, x){
 initialGuess <- c(amplitude = 1, mu = 0, gamma = 1, alpha = 1)
 #set bounds
 lowerBounds <- c(0,-Inf, 0, 0)
-
-#random data
-set.seed(123)
-sampleData <- rnorm(1000, mean = 2, sd = 1)
-plot(sampleData)
+upperBounds <- c(Inf, Inf, Inf, Inf)
 
 #Optimise
-result <- optim(par = initialGuess, fn = negLogLike, x = sampleData, method = "Nelder-Mead")
+result <- optim(par = initialGuess, fn = negLogLike, x = sampleData, method = "L-BFGS-B")
 optimPar <- result$par
 print(optimPar)
+
+result2 <- optim(par = initialGuess, fn = Moffat1D, gr = Moffat1D_Deriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
+optimPar2 <- result2$par
+print(optimPar2)
 
 #plot time
 xVal <- seq(min(sampleData), max(sampleData), length = 1000)
-optimisedDens <- Moffat1D(optimPar, xVal)
-plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
-legend("topright", legend = "Optimised Density", lty = 1)
+
+optimisedDens <- MoffatNS(optimPar, xVal)
+
+optDens2 <- MoffatNS(optimPar2, xVal)
 ```
 ```{r}
+plot(sampleData)
+plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function (Gaussian)", xlab = "x", ylab = "Density")
+
+plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function (Moffat, NLL)", xlab = "x", ylab = "Density")
+
+plot(xVal, optDens2, type = "l", main = "Optimised Density Function (Moffat, grad)", xlab = "x", ylab = "Density")
+
+```
+
+
+```{r}
 #Fitting to data
-plot(xl2)
+#plot(xl2)
 
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 0, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
 
 #Optimise
-result <- optim(par = initialGuess, fn = negLogLike, x = xl2, method = "Nelder-Mead")
+result <- optim(par = initialGuess, fn = Moffat1D, x = xl2, lower = lowerBounds, method = "L-BFGS-B")
 optimPar <- result$par
 print(optimPar)
 
-#plot time
-xVal <- seq(min(xl2), max(xl2), length = 1000)
-optimisedDens <- Moffat1D(optimPar, xVal)
+#plot
+xVal <- seq(min(xl2), max(xl2), length = 963)
+optimisedDens <- MoffatNS(optimPar, xVal)
 plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
 legend("topright", legend = "Optimised Density", lty = 1)
+
+par(mfrow = c(1,2))
+plot(xl2)
+plot(MoffatNS(optimPar, xl2))
 ```
 
+```{r}
+#Optimise
+resultl2 <- optim(par = initialGuess, fn = negLogLike, x = xl2, method = "L-BFGS-B", lower = lowerBounds, upper = upperBounds)
+optimParl2 <- resultl2$par
+print(optimParl2)
+optDenl2 <- MoffatNS(optimParl2, xVal)
+plot(xVal, optDenl2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+```
 
-
+```{r}
+plot(MoffatNS(initialGuess, xl2))
+print(MoffatNS(initialGuess, xl2))
+```
