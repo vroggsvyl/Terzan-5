@@ -335,3 +335,26 @@ plot(xVal, optDenl2, type = "l", main = "Optimised Density Function", xlab = "x"
 plot(MoffatNS(initialGuess, xl2))
 print(MoffatNS(initialGuess, xl2))
 ```
+
+```{r}
+#Fitting to data
+#plot(xl2)
+
+#set initial guesses
+initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
+
+#Optimise
+result <- optim(par = initialGuess, fn = Moffat1D, x = xl2.5, lower = lowerBounds, method = "L-BFGS-B")
+optimPar <- result$par
+print(optimPar)
+
+#plot
+xVal <- seq(min(xl2.5), max(xl2.5), length = 291)
+optimisedDens <- MoffatNS(optimPar, xVal)
+plot(xVal, optimisedDens, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+legend("topright", legend = "Optimised Density", lty = 1)
+
+par(mfrow = c(1,2))
+plot(xl2.5)
+plot(MoffatNS(optimPar, xl2.5))
+```
