@@ -76,32 +76,40 @@ ggplot(POI1, aes(x,y))+ geom_point(shape = ".", size = 0.5) + coord_fixed() + ge
 ```
 
 ```{r}
-range2 <- seq(-3, 3, by = 0.1)
+range2 <- seq(-3, 4, by = 0.1)
+my.at <- c(-3:3)
 #f(x) = A(1+(x-mu)^2/gamma^2)^-alpha
 
-plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing mu", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing mu", type = "l", xlab = "x", ylab = "f(x)", ylim = c(-0.5, 1.2), axes = FALSE)
+axis(1, at = 0:60, labels = seq(-3,3, by = 0.1))
+axis(2)
 lines(dMoffat1D(range2, 1, 0.5, 1, 1), type = "l", col = "red")
 lines(dMoffat1D(range2, 1, 1, 1, 1), type = "l", col = "blue")
 lines(dMoffat1D(range2, 1, -1, 1, 1), type = "l", col = "green")
+legend("topright", legend = c("mu = 0", "mu = 0.5", "mu = 1", "mu = -1"), col = c("black", "red", "blue", "green"), lty=1:2, cex=0.8)
 
-plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing alpha", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing alpha", type = "l", xlab = "x", ylab = "f(x)", ylim = c(-0.5, 1.2), axes = FALSE)
+axis(1, at = 0:60, labels = seq(-3,3, by = 0.1))
+axis(2)
 lines(dMoffat1D(range2, 1, 0, 1, 2), type = "l", col = "red")
 lines(dMoffat1D(range2, 1, 0, 1, 4), type = "l", col = "blue")
 lines(dMoffat1D(range2, 1, 0, 1, 0.5), type = "l", col = "green")
+legend("topright", legend = c("alpha = 1", "alpha = 2", "alpha = 4", "alpha = 0.5"), col = c("black", "red", "blue", "green"), lty=1:2, cex=0.8)
 
-plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing gamma", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
-lines(dMoffat1D(range2, 1, 0, 0.5, 1), type = "l", col = "red")
-lines(dMoffat1D(range2, 1, 0, 2, 1), type = "l", col = "blue")
-lines(dMoffat1D(range2, 1, 0, -1.5, 1), type = "l", col = "green")
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing gamma", type = "l", xlab = "x", ylab = "f(x)", ylim = c(-0.5, 2), axes = FALSE)
+axis(1, at = 0:60, labels = seq(-3,3, by = 0.1))
+axis(2)
+lines(dMoffat1D(range2, 1, 0, 2, 1), type = "l", col = "red")
+lines(dMoffat1D(range2, 1, 0, 4, 1), type = "l", col = "blue")
+lines(dMoffat1D(range2, 1, 0, 0.5, 1), type = "l", col = "green")
+legend("topright", legend = c("gamma = 1", "gamma = 2", "gamma = 4", "gamma = 0.5"), col = c("black", "red", "blue", "green"), lty=1:2, cex=0.8)
 
-plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing A", , type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 5))
+plot(dMoffat1D(range2, 1, 0, 1, 1), main = "Changing A", , type = "l", xlab = "x", ylab = "f(x)", ylim = c(-0.5, 5), axes = FALSE)
+axis(1, at = 0:60, labels = seq(-3,3, by = 0.1))
+axis(2)
 lines(dMoffat1D(range2, 2, 0, 1, 1), type = "l", col = "red")
 lines(dMoffat1D(range2, 4, 0, 1, 1), type = "l", col = "blue")
 lines(dMoffat1D(range2, 0.5, 0, 1, 1), type = "l", col = "green")
+legend("topright", legend = c("A = 1", "A = 2", "A = 3", "A = 0.5"), col = c("black", "red", "blue", "green"), lty=1:2, cex=0.8)
 
-```
-
-```{r}
-plot(dMoffat1D(range2, 0.4, 0, 1, 1), main = "Moffat vs T-Dist", type = "l", xlab = "x", ylab = "y", ylim = c(-0.5, 1.1))
-lines(dt(range2, 10), type = "l", xlab = "x", ylab = "y", col = "blue")
 ```
