@@ -17,6 +17,32 @@ library(fitdistrplus)
 ```
 
 ```{r}
+Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+Central <- T5 %>%
+  filter(x>4085 & x< 4150 & y>4060 & y<4125)
+POI3 <- T5 %>%
+  filter(x>4120 & x< 4140 & y>4100 & y<4120)
+
+dMoffat1D <- function(x, amplitude, mu, gamma, alpha){amplitude*(1+((x-mu)/gamma)^2)^-alpha}
+
+Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
+  chain = (1 + (x - mu)^2 / gamma^2)
+  d_A = chain^(-alpha)
+  d_mu = 2*amplitude*alpha*(x - mu)*d_A/(chain*gamma^2)
+  d_gamma = 2*amplitude*alpha*((x - mu)^2)*d_A/(chain*gamma^3)
+  d_alpha = -amplitude*d_A*log(chain)
+  
+  return(list(c(d_A, d_mu, d_gamma, d_alpha)))
+}
+```
+
+```{r}
 set.seed(0)
 g1 <- rgamma(1000, shape = 2, rate = 1)
 
