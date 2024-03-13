@@ -14,7 +14,6 @@ library(ggpointdensity)
 library(viridis)
 library(tidyr)
 library(fitdistrplus)
-library(rlang)
 ```
 
 ```{r}
@@ -35,20 +34,6 @@ hist(g1)
 hist(g2)
 hist(g3)
 hist(g4)
-```
-
-```{r}
-(function(x, y){ z <- x^2 + y^2; x+y+z })(0:7, 1)
-norm <- function(x) sqrt(x%*%x)
-norm(1:4)
-
-```
-
-
-```{r}
-#Generate Random Data
-set.seed(6)
-dat <- rnorm(1000)
 ```
 
 
@@ -84,18 +69,6 @@ Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
 }
 ```
 
-```{r}
-plot(dat)
-hist(dat)
-```
-```{r}
-dMoffat1D(2, 1, 0, 1, 1)
-x <- c(-10:10)
-plot(dMoffat1D(x, 1, 0, 1, 1), )
-```
-```{r}
-Moffat1D_Deriv(0.5, 1, 0, 1, 1)
-```
 
 ```{r}
 set.seed(8)
@@ -150,39 +123,6 @@ plot(dMoffat1D(range2, 1, 0, 0.5, 1), main = "Changing gamma")
 plot(dMoffat1D(range2, 4, 0, 1, 1), main = "Changing A")
 plot(dMoffat1D(range2, 4, 1, 4, 4), main = "Changing all")
 ```
-```{r}
-dMoffat1D <- function(x, amplitude, mu, gamma, alpha){
-  amplitude*(1+((x-mu)/gamma)^2)^-alpha
-  amplitude = min(0)
-  gamma = min(0)
-  alpha = min(0)}
-
-Moffat1D_Deriv <- function(x, amplitude, mu, gamma, alpha){
-  chain = (1 + (x - mu)^2 / gamma^2)
-  d_A = chain^(-alpha)
-  d_mu = 2*amplitude*alpha*(x - mu)*d_A/(chain*gamma^2)
-  d_gamma = 2*amplitude*alpha*((x - mu)^2)*d_A/(chain*gamma^3)
-  d_alpha = -amplitude*d_A*log(chain)
-  
-  return(list(c(d_A, d_mu, d_gamma, d_alpha)))
-}
-#optim(c(0, 1, 0, 1, 1), dMoffat1D, Moffat1D_Deriv)
-```
-
-```{r}
-#data to fit to
-plotdist(line2$x)
-plot(line2)
-
-xl2 <- line2$x
-plot(xl2)
-
-line2.5 <- line2 %>%
-  filter(y>4050.5 & y< 4051)
-plot(line2.5)
-xl2.5 <- line2.5$x
-plot(xl2.5)
-```
 
 ```{r}
 # Define the Gaussian density function
@@ -208,7 +148,7 @@ sampleData <- rnorm(1000, mean = 2, sd = 1)
 plot(sampleData)
 
 # Optimize the negative log-likelihood function
-result <- optim(par = initial_guess, fn = negative_log_likelihood, x = sample_data, method = "Nelder-Mead")
+result <- optim(par = initial_guess, fn = negative_log_likelihood, x = sampleData, method = "Nelder-Mead")
 
 # Extract the optimized parameters
 optimized_parameters <- result$par
@@ -216,7 +156,7 @@ print(optimized_parameters)
 
 #plot time
 xValN <- seq(min(sampleData), max(sampleData), length = 1000)
-optimisedDensN <- gaussian_density(x = xVal, mean = optimized_parameters[1], sd = optimized_parameters[2])
+optimisedDensN <- gaussian_density(x = xValN, mean = optimized_parameters[1], sd = optimized_parameters[2])
 ```
 
 ```{r}
@@ -383,6 +323,22 @@ plot(xVal, optDens2, type = "l", main = "Optimised Density Function (Moffat, gra
 
 ```
 
+```{r}
+#data to fit to
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+plotdist(line2$x)
+plot(line2)
+
+xl2 <- line2$x
+plot(xl2)
+
+line2.5 <- line2 %>%
+  filter(y>4050.5 & y< 4051)
+plot(line2.5)
+xl2.5 <- line2.5$x
+plot(xl2.5)
+```
 
 ```{r}
 #Fitting to data
