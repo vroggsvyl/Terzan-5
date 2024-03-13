@@ -222,9 +222,12 @@ optimisedDensN <- gaussian_density(x = xVal, mean = optimized_parameters[1], sd 
 ```{r}
 #used for plotting and negative log likelihood
 MoffatNS <- function(parameters, x){
+  parameters[1] <- pmax(parameters[1], 1e-6)
   amplitude <- parameters[1]
   mu <- parameters[2]
+  parameters[3] <- pmax(parameters[3], 1e-6)
   gamma <- parameters[3]
+  parameters[4] <- ensure_positive(parameters[4])
   alpha <- parameters[4]
   
   amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
@@ -246,6 +249,16 @@ negLogLike <- function(parameters, x){
   predictedDens <- MoffatNS(parameters, x)
   return(-sum(log(predictedDens)))
 }
+
+# negLogLike <- function(parameters, x){
+#   amplitude <- parameters[1]
+#   mu <- parameters[2]
+#   gamma <- parameters[3]
+#   alpha <- parameters[4]
+#     #check boundary conditions
+#   predictedDens <- MoffatNS(parameters, x)
+#   return(-sum(log(predictedDens)))
+# }
  
 #Method 2 - MLE
 Moffat1D <- function(parameters, x){
@@ -259,9 +272,12 @@ Moffat1D <- function(parameters, x){
 }
 
 MoffatDeriv <- function(parameters, x){
+  parameters[1] <- pmax(parameters[1], 1e-6)
   amplitude <- parameters[1]
   mu <- parameters[2]
+  parameters[3] <- pmax(parameters[3], 1e-6)
   gamma <- parameters[3]
+  parameters[4] <- pmax(parameters[4], 1e-6)
   alpha <- parameters[4]
   
 
@@ -270,10 +286,10 @@ MoffatDeriv <- function(parameters, x){
   d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
   d_alpha = -sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
   
-  return((c(d_A, d_mu, d_gamma, d_alpha)))
+  return(c(d_A, d_mu, d_gamma, d_alpha))
 }
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 2, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 0.4, mu = 2, gamma = 0.5, alpha = 0.4)
 #set bounds
 lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
 upperBounds <- c(Inf, Inf, Inf, Inf)
@@ -283,11 +299,72 @@ upperBounds <- c(Inf, Inf, Inf, Inf)
 result <- optim(par = initialGuess, fn = negLogLike, x = sampleData, method = "Nelder-Mead")
 optimPar <- result$par
 print(optimPar)
+res <- optim(par = initialGuess, fn = negLogLike, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
+print(res$par)
 #Method 2
 result2 <- optim(par = initialGuess, fn = Moffat1D, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
 optimPar2 <- result2$par
 print(optimPar2)
 
+```
+```{r}
+#code checking
+ensure_positive <- function(x) {
+  if(x<= 0){
+    return(1e-6)
+  } else {
+    return(x)
+  }
+}
+
+MoffatNS <- function(parameters, x){
+  parameters[1] <- pmax(parameters[1], 1e-6)
+  amplitude <- parameters[1]
+  mu <- parameters[2]
+  parameters[3] <- pmax(parameters[3], 1e-6)
+  gamma <- parameters[3]
+  parameters[4] <- ensure_positive(parameters[4])
+  alpha <- parameters[4]
+
+  amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+negLogLike <- function(parameters, x){
+  amplitude <- parameters[1]
+  mu <- parameters[2]
+  gamma <- parameters[3]
+  alpha <- parameters[4]
+    #check boundary conditions
+  predictedDens <- MoffatNS(parameters, x)
+  return(-sum(log(predictedDens)))
+}
+
+initialGuess <- c(0.4,1,5,2)
+sample <- c(0.7, 1, 1.4)
+MoffatNS(initialGuess, sample)
+negLogLike(initialGuess, sample)
+
+MoffatDeriv <- function(parameters, x){
+  parameters[1] <- pmax(parameters[1], 1e-6)
+  amplitude <- parameters[1]
+  mu <- parameters[2]
+  parameters[3] <- pmax(parameters[3], 1e-6)
+  gamma <- parameters[3]
+  parameters[4] <- pmax(parameters[4], 1e-6)
+  alpha <- parameters[4]
+  
+
+  d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
+  d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
+  d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
+  d_alpha = -sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
+  
+  return(c(d_A, d_mu, d_gamma, d_alpha))
+}
+
+initialGuess <- c(0.4,2,3,1)
+MoffatDeriv(initialGuess, sample)
+Moffat1D(initialGuess, sample)
 ```
 
 
@@ -313,7 +390,7 @@ xVall2 <- seq(min(xl2), max(xl2), length = 963)
 plot(xl2)
 
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 0.4, mu = 4115, gamma = 0.5, alpha = 0.4)
 
 #Method 1
 #l2m1 = line 2 (slice of celestial source), method 1 (negative log likelihood)
@@ -321,7 +398,6 @@ resultl2m1 <- optim(par = initialGuess, fn = negLogLike, x = xl2, method = "Neld
 optimParl2m1 <- resultl2m1$par
 print(optimParl2m1)
 optDenl2m1 <- MoffatNS(optimParl2m1, xVall2)
-
 
 #Method 2
 #l2m2 = line 2 (slice of celestial source), method 2 (mle)
@@ -347,7 +423,7 @@ xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 963)
 plot(xl2.5)
 
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 0.4, mu = 4115, gamma = 0.4, alpha = 0.4)
 
 #Method 1
 #l2.5m1 = line 2.5 (slice of celestial source), method 1 (negative log likelihood)
