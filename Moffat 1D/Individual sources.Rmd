@@ -1,0 +1,168 @@
+---
+title: "1D Moffat"
+output: html_document
+date: "2024-03-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R Markdown is focused on fitting the 1D Moffat Model to the slices of individual celestial sources.
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(fitdistrplus)
+```
+
+Downloading the data and sorting it into two celestial sources
+```{r}
+Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+```
+
+
+Functions required for the optim function
+```{r}
+MoffatNS <- function(parameters, x){
+
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+
+  amplitude <- pmax(amplitude, 1e-6)
+  gamma <- pmax(gamma, 1e-6)
+  alpha <- pmax(alpha, 1e-6)
+
+  amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+negLogLike <- function(parameters, x){
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+    #check boundary conditions
+  predictedDens <- MoffatNS(parameters, x)
+  return(-sum(log(predictedDens)))
+}
+ 
+#Method 2 - MLE
+Moffat1D <- function(parameters, x){
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+  
+  predicted <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  return(sum(predicted))
+}
+
+MoffatDeriv <- function(parameters, x){
+  parameters[[1]] <- pmax(parameters[[1]], 1e-6)
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  parameters[[3]] <- pmax(parameters[[3]], 1e-6)
+  gamma <- parameters[[3]]
+  parameters[[4]] <- pmax(parameters[[4]], 1e-6)
+  alpha <- parameters[[4]]
+  
+
+  d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
+  d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
+  d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
+  d_alpha = -sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
+  
+  return(c(d_A, d_mu, d_gamma, d_alpha))
+}
+
+```
+
+
+Slicing the individual celestial sources to create '1D' lines
+
+```{r}
+#data to fit to
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+plotdist(line2$x)
+plot(line2)
+
+xl2 <- line2$x
+plot(xl2)
+
+line2.5 <- line2 %>%
+  filter(y>4050.5 & y< 4051)
+plot(line2.5)
+xl2.5 <- line2.5$x
+plot(xl2.5)
+```
+
+```{r}
+#set initial guesses
+initialGuess <- c(amplitude = 0.9, mu = 2, gamma = 1, alpha = 1)
+#set bounds
+lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
+
+result <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
+optimPar2 <- result$par
+print(optimPar)
+```
+
+Fitting to the data
+```{r}
+xVall2 <- seq(min(xl2), max(xl2), length = 963)
+
+#set initial guesses
+initialGuess <- c(amplitude = 0.7, mu = 4115, gamma = 1, alpha = 1)
+
+#Method 2
+#l2m2 = line 2 (slice of celestial source), method 2 (mle)
+resultl2m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2, lower = lowerBounds, method = "L-BFGS-B")
+optimParl2m2 <- resultl2m2$par
+print(optimParl2m2)
+optDenl2m2<- MoffatNS(optimParl2m2, xVall2)
+```
+```{r}
+plot(xVall2, optDenl2m2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+
+par(mfrow = c(1,2))
+plot(xl2)
+plot(MoffatNS(optimParl2m2, xl2))
+```
+
+Halving the previous slice
+```{r}
+#Fitting to data
+xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 963)
+
+#set initial guesses
+initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
+
+#l2.5m2 = line 2.5 (slice of celestial source), method 2 (mle)
+resultl2.5m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2.5, lower = lowerBounds, method = "L-BFGS-B")
+optimParl2.5m2 <- resultl2.5m2$par
+print(optimParl2.5m2)
+optDenl2.5m2<- MoffatNS(optimParl2.5m2, xVall2.5)
+```
+
+Plotting the function with the optimised parameters
+```{r}
+plot(xVall2.5, optDenl2.5m2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+
+par(mfrow = c(1,2))
+plot(xl2.5)
+plot(MoffatNS(optimParl2.5m2, xl2.5))
+```
+
