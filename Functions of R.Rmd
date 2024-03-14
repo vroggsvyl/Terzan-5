@@ -5,6 +5,11 @@ output:
   html_document: default
 date: '2023-11-01'
 ---
+```{r}
+here::i_am("Functions of R.Rmd")
+here()
+```
+
 
 ```{r}
 library(ggplot2)
@@ -317,13 +322,13 @@ ensure_positive <- function(x) {
   }
 }
 
-MoffatNS <- function(x, amplitude, mu, gamma, alpha){
-  amplitude <- pmax(amplitude, 1e-6)
-  gamma <- pmax(gamma, 1e-6)
-  alpha <- pmax(alpha, 1e-6)
-
-  amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
-}
+# MoffatNS <- function(x, amplitude, mu, gamma, alpha){
+#   amplitude <- pmax(amplitude, 1e-6)
+#   gamma <- pmax(gamma, 1e-6)
+#   alpha <- pmax(alpha, 1e-6)
+# 
+#   amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+# }
 
 negLogLike <- function(parameters, x){
   amplitude <- parameters[1]
@@ -337,7 +342,7 @@ negLogLike <- function(parameters, x){
 
 initialGuess <- c(0.4,1,5,2)
 sample <- c(0.7, 1, 1.4)
-MoffatNS(sample, initialGuess)
+MoffatNS(initialGuess, sample)
 negLogLike(initialGuess, sample)
 
 MoffatDeriv <- function(parameters, x){

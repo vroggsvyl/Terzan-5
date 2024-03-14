@@ -20,10 +20,18 @@ library(tidyr)
 library(fitdistrplus)
 ```
 
+```{r}
+library(here)
+here()
+Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+head(Tz5)
+head(Terzan5)
+```
+
+
 Downloading the data and sorting it into two celestial sources
 ```{r}
-Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
-T5 <- data.frame(Terzan5$x, Terzan5$y)
+T5 <- data.frame(Tz5$x, Tz5$y)
 colnames(T5) <- c('x','y')
 POI1 <- T5 %>%
   filter(x>4160 & x<4180 & y>4180 & y<4200)
