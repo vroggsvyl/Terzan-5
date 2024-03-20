@@ -25,7 +25,6 @@ library(here)
 here()
 Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 head(Tz5)
-head(Terzan5)
 ```
 
 
@@ -42,7 +41,7 @@ POI2 <- T5 %>%
 
 Functions required for the optim function
 ```{r}
-MoffatNS <- function(parameters, x){
+Moffat <- function(parameters, x){
 
   amplitude <- parameters[[1]]
   mu <- parameters[[2]]
@@ -53,44 +52,28 @@ MoffatNS <- function(parameters, x){
   gamma <- pmax(gamma, 1e-6)
   alpha <- pmax(alpha, 1e-6)
 
-  amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  predictedDensity <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
 }
 
 negLogLike <- function(parameters, x){
-  amplitude <- parameters[[1]]
-  mu <- parameters[[2]]
-  gamma <- parameters[[3]]
-  alpha <- parameters[[4]]
-    #check boundary conditions
-  predictedDens <- MoffatNS(parameters, x)
+  predictedDens <- Moffat(parameters, x)
   return(-sum(log(predictedDens)))
-}
- 
-#Method 2 - MLE
-Moffat1D <- function(parameters, x){
-  amplitude <- parameters[[1]]
-  mu <- parameters[[2]]
-  gamma <- parameters[[3]]
-  alpha <- parameters[[4]]
-  
-  predicted <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
-  return(sum(predicted))
 }
 
 MoffatDeriv <- function(parameters, x){
-  parameters[[1]] <- pmax(parameters[[1]], 1e-6)
   amplitude <- parameters[[1]]
   mu <- parameters[[2]]
-  parameters[[3]] <- pmax(parameters[[3]], 1e-6)
   gamma <- parameters[[3]]
-  parameters[[4]] <- pmax(parameters[[4]], 1e-6)
   alpha <- parameters[[4]]
   
+  amplitude <- pmax(amplitude, 1e-6)
+  gamma <- pmax(gamma, 1e-6)
+  alpha <- pmax(alpha, 1e-6)
 
-  d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
-  d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
-  d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
-  d_alpha = -sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
+  d_A = -sum(1/amplitude)
+  d_mu = sum((2*alpha*(x - mu))/(gamma^2 + (x - mu)^2))
+  d_gamma = sum((2*alpha*(x - mu)^2)/(gamma^3 + gamma*(x - mu)^2))
+  d_alpha = sum(log(1+((x-mu)^2)/gamma^2))
   
   return(c(d_A, d_mu, d_gamma, d_alpha))
 }
@@ -116,15 +99,18 @@ plot(line2.5)
 xl2.5 <- line2.5$x
 plot(xl2.5)
 ```
-
+Using the Optim Function
 ```{r}
 #set initial guesses
-initialGuess <- c(amplitude = 0.9, mu = 2, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 0.9, mu = 2, gamma = 1, alpha = 0.5)
 #set bounds
 lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
 
+#sampledata
+sampleData <- rnorm(1000, mean = 2, sd = 1)
+
 result <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds)
-optimPar2 <- result$par
+optimPar <- result$par
 print(optimPar)
 ```
 
@@ -133,21 +119,21 @@ Fitting to the data
 xVall2 <- seq(min(xl2), max(xl2), length = 963)
 
 #set initial guesses
-initialGuess <- c(amplitude = 0.7, mu = 4115, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
 
 #Method 2
 #l2m2 = line 2 (slice of celestial source), method 2 (mle)
 resultl2m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2, lower = lowerBounds, method = "L-BFGS-B")
 optimParl2m2 <- resultl2m2$par
 print(optimParl2m2)
-optDenl2m2<- MoffatNS(optimParl2m2, xVall2)
+optDenl2m2<- Moffat(optimParl2m2, xVall2)
 ```
 ```{r}
 plot(xVall2, optDenl2m2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
 
 par(mfrow = c(1,2))
 plot(xl2)
-plot(MoffatNS(optimParl2m2, xl2))
+plot(Moffat(optimParl2m2, xl2))
 ```
 
 Halving the previous slice
@@ -162,7 +148,7 @@ initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
 resultl2.5m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2.5, lower = lowerBounds, method = "L-BFGS-B")
 optimParl2.5m2 <- resultl2.5m2$par
 print(optimParl2.5m2)
-optDenl2.5m2<- MoffatNS(optimParl2.5m2, xVall2.5)
+optDenl2.5m2<- Moffat(optimParl2.5m2, xVall2.5)
 ```
 
 Plotting the function with the optimised parameters
@@ -171,6 +157,6 @@ plot(xVall2.5, optDenl2.5m2, type = "l", main = "Optimised Density Function", xl
 
 par(mfrow = c(1,2))
 plot(xl2.5)
-plot(MoffatNS(optimParl2.5m2, xl2.5))
+plot(Moffat(optimParl2.5m2, xl2.5))
 ```
 

@@ -1,13 +1,19 @@
 ---
 title: "Exploring R"
 output:
-  word_document: default
+  pdf_document: default
   html_document: default
-date: '2023-11-01'
+  word_document: default
+date: "2023-11-01"
 ---
 ```{r}
+library(here)
 here::i_am("Functions of R.Rmd")
 here()
+```
+```{r}
+here()
+Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 ```
 
 
@@ -22,8 +28,7 @@ library(fitdistrplus)
 ```
 
 ```{r}
-Terzan5 <- read.csv("C:\\Users\\Blake\\Desktop\\Uni\\Honours\\Project\\Terzan 5 X-ray events.csv")
-T5 <- data.frame(Terzan5$x, Terzan5$y)
+T5 <- data.frame(Tz5$x, Tz5$y)
 colnames(T5) <- c('x','y')
 POI1 <- T5 %>%
   filter(x>4160 & x<4180 & y>4180 & y<4200)
@@ -203,7 +208,8 @@ MoffatNS <- function(parameters, x){
   gamma <- pmax(gamma, 1e-6)
   alpha <- pmax(alpha, 1e-6)
 
-  amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  predictedDensity <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  return(predictedDensity)
 }
 
 # MoffatNS <- function(amplitude, mu, gamma, alpha, x){
@@ -238,11 +244,6 @@ MoffatNS <- function(parameters, x){
 # }
 
 negLogLike <- function(parameters, x){
-  amplitude <- parameters[[1]]
-  mu <- parameters[[2]]
-  gamma <- parameters[[3]]
-  alpha <- parameters[[4]]
-    #check boundary conditions
   predictedDens <- MoffatNS(parameters, x)
   return(-sum(log(predictedDens)))
 }
@@ -269,14 +270,14 @@ MoffatDeriv <- function(parameters, x){
   
 
   d_A = sum((1 + (x - mu)^2 / gamma^2)^(-alpha))
-  d_mu = 2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
-  d_gamma = 2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
-  d_alpha = -sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
+  d_mu = -2*sum(amplitude*alpha*(x - mu)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^2))
+  d_gamma = -2*sum(amplitude*alpha*((x - mu)^2)*(1 + (x - mu)^2 / gamma^2)^(-alpha)/((1 + (x - mu)^2 / gamma^2)*gamma^3))
+  d_alpha = sum(amplitude*(1 + (x - mu)^2 / gamma^2)^(-alpha)*log((1 + (x - mu)^2 / gamma^2)))
   
   return(c(d_A, d_mu, d_gamma, d_alpha))
 }
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 2, gamma = 1, alpha = 1)
+initialGuess <- c(amplitude = 0.4, mu = 2, gamma = 1, alpha = 1)
 #set bounds
 lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
 upperBounds <- c(Inf, Inf, Inf, Inf)
@@ -294,6 +295,15 @@ optimPar2 <- result2$par
 print(optimPar2)
 
 ```
+plot negloglike to parameters
+histo
+test if it's responding to changes
+take the derivative of the negative log function
+numderiv - 
+
+$\int_0^\infty \log x dx$ - familiar, useful resource
+
+
 ```{r}
 MoffatNS <- function(parameters, x){
 
@@ -375,6 +385,8 @@ xVal <- seq(min(sampleData), max(sampleData), length = 1000)
 optimisedDens <- MoffatNS(optimPar, xVal)
 optDens2 <- MoffatNS(optimPar2, xVal)
 
+#plot(xVal, negLogLike(optimPar, xVal))
+
 plot(sampleData)
 plot(xValN, optimisedDensN, type = "l", main = "Optimised Density Function (Gaussian)", xlab = "x", ylab = "Density")
 
@@ -440,7 +452,7 @@ xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 963)
 plot(xl2.5)
 
 #set initial guesses
-initialGuess <- c(amplitude = 0.4, mu = 4115, gamma = 0.4, alpha = 0.4)
+initialGuess <- c(amplitude = 0.4, mu = 4115, gamma = 0.4, alpha = 1)
 
 #Method 1
 #l2.5m1 = line 2.5 (slice of celestial source), method 1 (negative log likelihood)

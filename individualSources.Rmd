@@ -1,0 +1,344 @@
+---
+title: "1D Moffat"
+output: html_document
+date: "2024-03-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R Markdown is focused on fitting the 1D Moffat Model to the slices of individual celestial sources.
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(fitdistrplus)
+```
+
+```{r}
+library(here)
+i_am("individualSources.Rmd")
+Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+head(Tz5)
+```
+
+
+Downloading the data and sorting it into two celestial sources
+```{r}
+T5 <- data.frame(Tz5$x, Tz5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+```
+
+Slicing the individual celestial sources to create '1D' lines
+
+```{r}
+#data to fit to
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+plotdist(line2$x)
+plot(line2)
+
+line2.5 <- line2 %>%
+  filter(y>4050.5 & y< 4051)
+plot(line2.5)
+
+xl2 <- line2$x
+xl2.5 <- line2.5$x
+
+plot(xl2)
+plot(xl2.5)
+```
+
+Functions required for the optim function
+```{r}
+Moffat <- function(parameters, x){
+
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+
+  amplitude <- pmax(amplitude, 1e-6)
+  amplitude <- pmin(1-1e-6, amplitude)
+  gamma <- pmax(gamma, 1e-6)
+  alpha <- pmax(alpha, 1e-6)
+  #limiting values, amplitude must be between 0 and 1. As I am creating a probability density function, the density must be between 0 and 1 and the amplitude represents the peak of the density.
+  #gamma can't be 0 otherwise we run into a math error.
+  #alpha can't equal 0 otherwise the pdf will be equal to 1 for everything. It can't be less than zero as that'll cause the density to be greater than 1. 
+
+  predictedDensity <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+negLogLike <- function(parameters, x){
+  predictedDens <- Moffat(parameters, x)
+  return(-sum(log(predictedDens)))
+}
+
+MoffatDeriv <- function(parameters, x){
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+  
+  amplitude <- pmax(amplitude, 1e-6)
+  amplitude <- pmin(1, amplitude)
+  gamma <- pmax(gamma, 1e-6)
+  alpha <- pmax(alpha, 1e-6)
+
+
+  d_A = -sum(1/amplitude)
+  d_mu = sum((2*alpha*(x - mu))/(gamma^2 + (x - mu)^2))
+  d_gamma = sum((2*alpha*(x - mu)^2)/(gamma^3 + gamma*(x - mu)^2))
+  d_alpha = sum(log(1+((x-mu)^2)/gamma^2))
+  
+  return(c(d_A, d_mu, d_gamma, d_alpha))
+}
+
+```
+
+Plotting the Negative Log Likelihood Function to varying parameters
+The baseline parameters are (0.5, 0, 1, 1) and x is 1 in all estimates of the negative log likelihood. 
+As the objective of the optim function is to minimize the Negative Log Likelihood Function, 
+```{r}
+#changing the value of the amplitude
+amplitude <- seq(0.05, 1, by = 0.05)
+
+i <- 1
+changingA <- vector("numeric", length = 20)
+
+while(i<=20){
+  parameters <- c(amplitude[[i]], 0, 1, 1)
+  changingA[i] <- (negLogLike(parameters, 1))
+  i <- i+1
+}
+
+print(changingA)
+
+#changing the value of mu
+mu <- seq(0.05, 1, by = 0.05)
+
+i <- 1
+changingMu <- vector("numeric", length = 20)
+
+while(i<=20){
+  parameters <- c(0.5, mu[[i]], 1, 1)
+  changingMu[i] <- (negLogLike(parameters, 0.5))
+  i <- i+1
+}
+
+print(changingMu)
+
+#changing the value of gamma
+gamma <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingGamma <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 0, gamma[[i]], 1)
+  changingGamma[i] <- (negLogLike(parameters, 1))
+  i <- i+1
+}
+
+print(changingGamma)
+
+
+#changing the value of alpha
+alpha <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingAlpha <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 0, 1, alpha[[i]])
+  changingAlpha[i] <- (negLogLike(parameters, 1))
+  i <- i+1
+}
+
+print(changingAlpha)
+
+par(mfrow = c(2,2))
+plot(amplitude, changingA, type = "l", xlab = "Amplitude", ylab = "Negative Log Likelihood")
+plot(mu, changingMu, type = "l", xlab = "Mu", ylab = "Negative Log Likelihood")
+plot(gamma, changingGamma, type = "l", xlab = "Gamma", ylab = "Negative Log Likelihood")
+plot(alpha, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+```
+As the amplitude increases, the negative log likelihood decreases.
+The negative log likelihood is the smallest when mu is equal to x.
+As gamma increases, the negative log likelihood decreases
+As alpha increases the negative log likelihood increases. In the instance where mu = x, alpha has no affect on the negative log likelihood. 
+
+The previous plots, when applied to a range of x values from a singular celestial source. Where the baseline mu has been adjusted to 4115. 
+
+```{r}
+#changing the value of the amplitude
+amplitude <- seq(0.05, 1, by = 0.05)
+
+i <- 1
+changingA <- vector("numeric", length = 20)
+
+while(i<=20){
+  parameters <- c(amplitude[[i]], 4115, 1, 1)
+  changingA[i] <- (negLogLike(parameters, xl2.5))
+  i <- i+1
+}
+
+print("Changing Amplitude")
+print(changingA)
+
+#changing the value of mu
+mu <- seq(4110, 4120, by = 0.5)
+
+i <- 1
+changingMu <- vector("numeric", length = 21)
+
+while(i<=21){
+  parameters <- c(0.5, mu[[i]], 1, 1)
+  changingMu[i] <- (negLogLike(parameters, xl2.5))
+  i <- i+1
+}
+
+print("Changing Mu")
+print(changingMu)
+
+#changing the value of gamma
+gamma <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingGamma <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 4115, gamma[[i]], 1)
+  changingGamma[i] <- (negLogLike(parameters, xl2.5))
+  i <- i+1
+}
+
+print("Changing Gamma")
+print(changingGamma)
+
+
+#changing the value of alpha
+alpha <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingAlpha <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 4115, 1, alpha[[i]])
+  changingAlpha[i] <- (negLogLike(parameters, xl2.5))
+  i <- i+1
+}
+
+print("Changing Alpha")
+print(changingAlpha)
+
+par(mfrow = c(2,2))
+plot(amplitude, changingA, type = "l", xlab = "Amplitude", ylab = "Negative Log Likelihood")
+plot(mu, changingMu, type = "l", xlab = "Mu", ylab = "Negative Log Likelihood")
+plot(gamma, changingGamma, type = "l", xlab = "Gamma", ylab = "Negative Log Likelihood")
+plot(alpha, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+```
+These plots are in the same shape as previous plots indicating that they adapt to the data. 
+This indicates to me that in order to minimize the negative log likelihood function. Mu should exist near 4115. The amplitude should
+
+When amplitude = 1 and mu = x then it doesn't matter what the values of gamma and alpha are because the log of 1 is 0 and that is the minimization of the negative Log Likelihood Function.
+
+Using the Optim Function
+```{r}
+#set initial guesses
+initialGuess <- c(amplitude = 0.9, mu = 2, gamma = 1, alpha = 0.5)
+#set bounds
+lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
+upperBounds <- c(1-1e-6, Inf, Inf, Inf)
+
+#sampledata
+sampleData <- rnorm(1000, mean = 2, sd = 1)
+
+result <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds, upper = upperBounds)
+optimPar <- result$par
+print(optimPar)
+plot(sampleData, Moffat(optimPar, sampleData), type = "l")
+```
+This has not yielded the desired results.
+
+
+Fitting to the data
+```{r}
+xVall2 <- seq(min(xl2), max(xl2), length = 963)
+
+#set initial guesses
+initialGuess <- c(amplitude = 0.1, mu = 4115, gamma = 20, alpha = 0.5)
+
+#Method 2
+#l2m2 = line 2 (slice of celestial source), method 2 (mle)
+resultl2m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2, method = "L-BFGS-B", lower = lowerBounds, upper = upperBounds)
+optimParl2m2 <- resultl2m2$par
+print(optimParl2m2)
+optDenl2m2<- Moffat(optimParl2m2, xVall2)
+```
+This continues to trend towards wanting to set the amplitude as being equal to 1. 
+
+```{r}
+plot(xVall2, optDenl2m2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+
+par(mfrow = c(1,2))
+plot(xl2)
+plot(Moffat(optimParl2m2, xl2))
+```
+
+Halving the previous slice
+```{r}
+#Fitting to data
+xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 963)
+
+#set initial guesses
+initialGuess <- c(amplitude = 1, mu = 4115, gamma = 1, alpha = 1)
+
+#l2.5m2 = line 2.5 (slice of celestial source), method 2 (mle)
+resultl2.5m2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2.5, lower = lowerBounds, method = "L-BFGS-B")
+optimParl2.5m2 <- resultl2.5m2$par
+print(optimParl2.5m2)
+optDenl2.5m2<- Moffat(optimParl2.5m2, xVall2.5)
+```
+
+Plotting the function with the optimised parameters
+```{r}
+plot(xVall2.5, optDenl2.5m2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+
+par(mfrow = c(1,2))
+plot(xl2.5)
+plot(Moffat(optimParl2.5m2, xl2.5))
+```
+
+
+Exploring the numDeriv package
+```{r}
+myRandData <- seq(0,4, by = 0.1)
+myenv <- new.env()
+myenv$amplitude <- 0.4
+myenv$mu <- 2
+myenv$gamma <- 1
+myenv$alpha <- 0.5
+myenv$x <- myRandData
+theta <- c("amplitude", "mu", "gamma", "alpha")
+numericDeriv(amplitude*(1+((x-mu)^2/gamma^2))^(-alpha), theta = theta)
+```
+```{r}
+#Example provided in package
+myenv <- new.env()
+myenv$mean <- 0.
+myenv$sd   <- 1.
+myenv$x    <- seq(-3., 3., length.out = 31)
+nD <- numericDeriv(quote(pnorm(x, mean, sd)), c("mean", "sd"), myenv)
+str(nD)
+```
+
