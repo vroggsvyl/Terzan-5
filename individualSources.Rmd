@@ -59,6 +59,9 @@ plot(xl2.5)
 ```
 
 Functions required for the optim function
+1D Moffat 
+$A(1+(x-mu)^2/gamma^2)^(-alpha)$
+
 ```{r}
 Moffat <- function(parameters, x){
 
@@ -255,7 +258,7 @@ When amplitude = 1 and mu = x then it doesn't matter what the values of gamma an
 Using the Optim Function
 ```{r}
 #set initial guesses
-initialGuess <- c(amplitude = 0.9, mu = 2, gamma = 1, alpha = 0.5)
+initialGuess <- c(amplitude = 0.4, mu = 2, gamma = 1, alpha = 0.5)
 #set bounds
 lowerBounds <- c(1e-6, -Inf, 1e-6, 1e-6)
 upperBounds <- c(1-1e-6, Inf, Inf, Inf)
@@ -265,8 +268,10 @@ sampleData <- rnorm(1000, mean = 2, sd = 1)
 
 result <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = sampleData, method = "L-BFGS-B", lower = lowerBounds, upper = upperBounds)
 optimPar <- result$par
+xVal <- seq(min(sampleData), max(sampleData), length = 1000)
+optimDens <- Moffat(optimPar, xVal)
 print(optimPar)
-plot(sampleData, Moffat(optimPar, sampleData), type = "l")
+plot(xVal, optimDens, type = "l")
 ```
 This has not yielded the desired results.
 
