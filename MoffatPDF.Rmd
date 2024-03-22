@@ -1,6 +1,9 @@
 ---
 title: "Moffat1D"
-output: html_document
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
 date: "2024-03-21"
 ---
 
@@ -8,11 +11,50 @@ date: "2024-03-21"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(ggplot2)
+library(plotly)
+library(readr)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(fitdistrplus)
+```
+Importing the data and narrowing it down to a "1D" slice of a Celestial Source
+Viewing some of those slices
+```{r}
+library(here)
+i_am("MoffatPDF.Rmd")
+Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+head(Tz5)
+T5 <- data.frame(Tz5$x, Tz5$y)
+colnames(T5) <- c('x','y')
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+#data to fit to
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+plotdist(line2$x)
+plot(line2)
+
+line2.5 <- line2 %>%
+  filter(y>4050.5 & y< 4051)
+plot(line2.5)
+
+xl2 <- line2$x
+xl2.5 <- line2.5$x
+xVall2 <- seq(min(xl2), max(xl2), length = 963)
+xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 291)
+```
+
 This Rmarkdown document is to create a function of the 1D Moffat distribution function where the amplitude is given in respect to the parameters that describe the core width and power index.
 
 The equation is as follows:
 
 $$f(x) = \frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}$$
+In order for the amplitude to remain positive, alpha must be greater than 0 and beta must be greater than or equal to 1.5.
 
 ```{r}
 MOFFATPDF <- function(parameters, x){
@@ -61,11 +103,9 @@ derivMOFFATPDS <- function(parameters, x){
 }
 ```
 
-
-
 Trying with optim
 ```{r}
-initialGUESS <- c(mu = 4115, alpha = 2, beta = 5)
+initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
 lowerBOUNDS <- c(0, 1e-6, 1.5)
 
 RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2.5, method = "L-BFGS-B", lower = lowerBOUNDS)
@@ -74,5 +114,13 @@ optimPAR2.5
 
 optimDENS2.5 <- MOFFATPDF(optimPAR2.5, xVall2.5)
 plot(xVall2.5, optimDENS2.5, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+```
+```{r}
+RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2, method = "L-BFGS-B", lower = lowerBOUNDS)
+optimPAR2 <- RESULT$par
+optimPAR2
+
+optimDENS2 <- MOFFATPDF(optimPAR2, xVall2)
+plot(xVall2, optimDENS2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
 ```
 
