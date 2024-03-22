@@ -1,0 +1,78 @@
+---
+title: "Moffat1D"
+output: html_document
+date: "2024-03-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This Rmarkdown document is to create a function of the 1D Moffat distribution function where the amplitude is given in respect to the parameters that describe the core width and power index.
+
+The equation is as follows:
+
+$$f(x) = \frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}$$
+
+```{r}
+MOFFATPDF <- function(parameters, x){
+  mu <- parameters[[1]]
+  alpha <- parameters[[2]]
+  beta <- parameters[[3]]
+  
+  alpha <- pmax(alpha, 1e-6)
+  beta <- pmax(beta, 0.5+1e-6)
+  
+  predictedDensity <- (gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
+  
+}
+```
+
+To use the optim function likes to minimize functions.
+For that I need a Negative Log Likelihood
+
+```{r}
+NLL <- function(parameters, x){
+  predictedDensity <- MOFFATPDF(parameters, x)
+  return(-sum(log(predictedDensity)))
+}
+```
+
+Now I need the partial derivatives of the negative log likelihood with respect to each parameter
+
+$$-\sum\ln\left[\Gamma(\beta)\right] - \ln\left[\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})\right] - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right]$$
+$$\frac{\delta}{\delta\mu} = -\sum\frac{2\beta(x-\mu)}{\alpha^2 + (x-\mu)^2}$$
+$$\frac{\delta}{\delta\alpha} = -\sum-\frac{1}{\alpha} + \frac{2\beta(x-\mu)^2}{\alpha^3 + \alpha(x-\mu)^2}$$
+To obtain the partial derivative with respect to beta I will be using the Rcode of digamma
+$$\frac{\delta}{\delta\beta} = -\sum digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right]$$
+
+```{r}
+derivMOFFATPDS <- function(parameters, x){
+  mu <- parameters[[1]]
+  alpha <- parameters[[2]]
+  beta <- parameters[[3]]
+  
+  
+  dMu <- -sum((2*beta*(x-mu))/(alpha^2 + (x-mu)^2))
+  dAlpha <- -sum(-1/alpha + (2*beta*(x-mu)^2)/(alpha^3+alpha*(x-mu)^2))
+  dBeta <- -sum(digamma(beta)-digamma(beta-0.5)-log(1+(x-mu)^2/alpha^2))
+  
+  return(c(dMu, dAlpha, dBeta))
+}
+```
+
+
+
+Trying with optim
+```{r}
+initialGUESS <- c(mu = 4115, alpha = 2, beta = 5)
+lowerBOUNDS <- c(0, 1e-6, 1.5)
+
+RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2.5, method = "L-BFGS-B", lower = lowerBOUNDS)
+optimPAR2.5 <- RESULT$par
+optimPAR2.5
+
+optimDENS2.5 <- MOFFATPDF(optimPAR2.5, xVall2.5)
+plot(xVall2.5, optimDENS2.5, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+```
+

@@ -282,7 +282,7 @@ Fitting to the data
 xVall2 <- seq(min(xl2), max(xl2), length = 963)
 
 #set initial guesses
-initialGuess <- c(amplitude = 1, mu = 4115, gamma = 3, alpha = 0.5)
+initialGuess <- c(amplitude = 6, mu = 4116, gamma = 3, alpha = 0.5)
 
 #l2 = line 2 (slice of celestial source)
 resultl2 <- optim(par = initialGuess, fn = negLogLike, gr = MoffatDeriv, x = xl2, method = "L-BFGS-B", lower = lowerBounds)
@@ -345,5 +345,8 @@ myenv$sd   <- 1.
 myenv$x    <- seq(-3., 3., length.out = 31)
 nD <- numericDeriv(quote(pnorm(x, mean, sd)), c("mean", "sd"), myenv)
 str(nD)
+```
+```{r}
+gamma
 ```
 
