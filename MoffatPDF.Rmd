@@ -19,42 +19,241 @@ library(ggpointdensity)
 library(viridis)
 library(tidyr)
 library(fitdistrplus)
+
+## Color pallete
+cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
-Importing the data and narrowing it down to a "1D" slice of a Celestial Source
-Viewing some of those slices
+
+Importing the data.
 ```{r}
 library(here)
 i_am("MoffatPDF.Rmd")
-Tz5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
-head(Tz5)
-T5 <- data.frame(Tz5$x, Tz5$y)
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+head(Terzan5)
+```
+
+Removing extraneous readings.
+```{r}
+T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
+```
+
+Viewing the dataset via a density heatmap.
+```{r}
+ggplot(T5,aes(x,y)) + geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + coord_fixed()
+```
+Darker areas indicate areas containing a high number of observations. These indicates the existance of a celestial source. The first aim is to try to fit a Moffat Model to each individual celestial source to predict. By then removing all of the celestial sources and their associated observations, if there is a higher level remaining this is an indication of interstellar gas remaining within the cluster. 
+
+Before getting to that stage, I want to focus on two individual celestial sources that are isolated (unlikely to contain observations that may come from another nearby source).
+
+Choosing two Points of Interest (POI)
+```{r}
 POI1 <- T5 %>%
   filter(x>4160 & x<4180 & y>4180 & y<4200)
 POI2 <- T5 %>%
   filter(x>4105 & x< 4125 & y>4040 & y<4060)
-#data to fit to
-line2 <- POI2 %>%
-  filter(y>4050.5 & y< 4051.5)
-plotdist(line2$x)
-plot(line2)
-
-line2.5 <- line2 %>%
-  filter(y>4050.5 & y< 4051)
-plot(line2.5)
-
-xl2 <- line2$x
-xl2.5 <- line2.5$x
-xVall2 <- seq(min(xl2), max(xl2), length = 963)
-xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 291)
 ```
 
-This Rmarkdown document is to create a function of the 1D Moffat distribution function where the amplitude is given in respect to the parameters that describe the core width and power index.
+Viewing one of those Points of Interest
+```{r}
+ggplot(POI2, aes(x,y))+geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + coord_fixed()
+```
+It's important to note that while a lot of the surrounding area appears to be empty, it is full of background observations. It appears blank as observations are darker in colour and more prominent when there is a higher number of other observations close by.
 
-The equation is as follows:
+Before fitting a 2D Moffat Model, I want to simplify and fit a 1D model to see if it is the most appropriate fit to the data. To do that, I'm going to slice my celestial sources (POI's) into lines, with fewer observations and treat them as being one-dimensional. 
+```{r}
+line0 <- POI2 %>%
+  filter(y>4048.5 & y< 4049.5)
+line1 <- POI2 %>%
+  filter(y>4049.5 & y< 4050.5)
+line2 <- POI2 %>%
+  filter(y>4050.5 & y< 4051.5)
+line3 <- POI2 %>%
+  filter(y>4051.5 & y< 4052.5)
+line4 <- POI2 %>%
+  filter(y>4052.5 & y< 4053.5)
+line5 <- POI2 %>%
+  filter(y>4053.5 & y< 4054.5)
+line6 <- POI2 %>%
+  filter(y>4054.5 & y< 4055.5)
+lineback <- POI2 %>%
+  filter(y>4055 & y< 4060)
 
+line2.5 <- POI2 %>%
+  filter(y>4050.5 & y< 4051)
+```
+
+Choosing one of my slices, I am to fit a distribution to it to be able to predict if the observations belong to the celestial source or not. 
+Fitting to a Normal Distribution
+```{r}
+xl2 <- line2$x
+
+# Define the Gaussian density function
+gaussian_density <- function(parameters, x) {
+  mean <- parameters[[1]]
+  sd <- parameters[[2]]
+  
+  return(dnorm(x, mean = mean, sd = sd))
+}
+
+# Define the negative log-likelihood function for Gaussian distribution
+negative_log_likelihood <- function(parameters, x) {
+  predicted_density <- gaussian_density(parameters, x)
+  
+  return(-sum(log(predicted_density)))
+}
+
+initial_guess <- c(mean = 4115, sd = 1)
+# Optimize the negative log-likelihood function
+result <- optim(par = initial_guess, fn = negative_log_likelihood, x = xl2, method = "Nelder-Mead")
+
+# Extract the optimized parameters
+optimized_parameters <- result$par
+optimized_parameters
+```
+```{r}
+optimParameters2N <- gaussian_density(optimized_parameters, xl2)
+## plotting layers in ggplot
+ggplot(line2) +
+  geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5]) +
+  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian density"), linewidth=1.2) +
+  ylab("p(x)") + 
+  scale_colour_manual("Legend", values = cbPalette)
+```
+It is clear that the Normal distribution doesn't provide an accurate model of the data.
+
+I want to have a look at the 1D Moffat distribution. The Moffat Model was specifically designed to handle point spread functions that occur in the field of astronomy. So I expect to to yield a better fit to data than a normal distribution.
+
+The 1D Moffat Model:
+$$A(1+\frac{(x-\mu)^2}{\gamma^2})^{-\alpha}$$
+Where A = amplitude, $\mu$ = position of the maximum, $\gamma$ = core width, $\alpha$ = power index.
+
+Visualising the Moffat Function
+```{r}
+Moffat <- function(x, amplitude, mu, gamma, alpha){
+   amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+#Function 1
+A1 <- 4
+mu1 <- 10
+gamma1 <- 2
+alpha1 <- 3.8
+String1 = paste("A = ", A1, "mu = ", mu1, "gamma = ", gamma1, "alpha = ", alpha1)
+
+#Function 2
+A2 <- 6
+mu2 <- -3
+gamma2 <- 0.7
+alpha2 <- 9
+String2 = paste("A = ", A2, "mu = ", mu2, "gamma = ", gamma2, "alpha = ", alpha2)
+
+#Function 3
+A3 <- 2
+mu3 <- 3.4
+gamma3 <- 6.4
+alpha3 <- 0.7
+String3 = paste("A = ", A3, "mu = ", mu3, "gamma = ", gamma3, "alpha = ", alpha3)
+
+
+ggplot() +
+  stat_function(fun = Moffat, n = 1000, args = list(amplitude = A1, mu = mu1, gamma = gamma1, alpha = alpha1), aes(colour = String1)) +
+  stat_function(fun = Moffat, n = 1000, args = list(amplitude = A2, mu = mu2, gamma = gamma2, alpha = alpha2), aes(colour = String2)) +
+  stat_function(fun = Moffat, n = 1000, args = list(amplitude = A3, mu = mu3, gamma = gamma3, alpha = alpha3), aes(colour = String3)) +
+  xlim(-20, 20) + ylim(0, NA) +
+  scale_colour_manual("Moffat Models", values = cbPalette)
+
+```
+Trying to use the optim function to estimate the parameters of the Moffat Model when fitted to the data.
+```{r}
+Moffat <- function(parameters, x){
+  amplitude <- parameters[[1]]
+  mu <- parameters[[2]]
+  gamma <- parameters[[3]]
+  alpha <- parameters[[4]]
+
+  amplitude <- pmax(amplitude, 1e-6)
+  gamma <- pmax(gamma, 1e-6)
+  alpha <- pmax(alpha, 1e-6)
+  #limiting values, amplitude must be greater than 0. As I am creating a probability density function, the area under the curve sums to 1. 
+  #gamma can't equal zero, otherwise there is a math error.
+  #alpha can't equal 0 otherwise the density will be equal to 1 for everything. It can't be less than zero as that'll cause the density to be greater than 1.
+
+  predictedDensity <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+}
+
+negLogLike <- function(parameters, x){
+  predictedDens <- Moffat(parameters, x)
+  return(-sum(log(predictedDens)))
+}
+```
+
+When putting the above model into optim, the returned results for the list of parameters were unrealistic. In order to work out why I plotted the Negative Log Likelihood Function to varying parameters as the objective of the optim function is to minimize the Negative Log Likelihood Function.
+
+The baseline parameters are (0.5, 0, 1, 1) and x is 1 in all estimates of the negative log likelihood.
+```{r}
+#changing the value of the amplitude
+amplitude <- seq(0.25, 5, by = 0.25)
+
+i <- 1
+changingA <- vector("numeric", length = 20)
+
+while(i<=20){
+  parameters <- c(amplitude[[i]], 4115, 1, 1)
+  changingA[i] <- (negLogLike(parameters, xl2))
+  i <- i+1
+}
+
+#changing the value of mu
+mu <- seq(4110, 4120, by = 0.5)
+
+i <- 1
+changingMu <- vector("numeric", length = 21)
+
+while(i<=21){
+  parameters <- c(0.5, mu[[i]], 1, 1)
+  changingMu[i] <- (negLogLike(parameters, xl2))
+  i <- i+1
+}
+
+#changing the value of gamma
+gamma <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingGamma <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 4115, gamma[[i]], 1)
+  changingGamma[i] <- (negLogLike(parameters, xl2))
+  i <- i+1
+}
+
+#changing the value of alpha
+alpha <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingAlpha <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(0.5, 4115, 1, alpha[[i]])
+  changingAlpha[i] <- (negLogLike(parameters, xl2))
+  i <- i+1
+}
+
+par(mfrow = c(2,2))
+plot(amplitude, changingA, type = "l", xlab = "Amplitude", ylab = "Negative Log Likelihood")
+plot(mu, changingMu, type = "l", xlab = "Mu", ylab = "Negative Log Likelihood")
+plot(gamma, changingGamma, type = "l", xlab = "Gamma", ylab = "Negative Log Likelihood")
+plot(alpha, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+```
+By the plots, it can be interpreted that optim likes to blow up the value of A, the amplitude. The larger the value of A, the smaller the Negative Log Likelihood. A similar thing happens for the value of gamma and the inverse happens for the value of alpha. This is not ideal.
+
+As the goal is to try to fit to a probability density function, the amplitude can be expressed in terms of the other parameters gamma and alpha. From this point on the core width gamma is referred to as alpha and the power index alpha is referred to as beta
+
+The equation of the probability density function is as follows:
 $$f(x) = \frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}$$
-In order for the amplitude to remain positive, alpha must be greater than 0 and beta must be greater than or equal to 1.5.
+
+In order for the function to remain positive, alpha must be greater than 0 and beta must be greater than or equal to 1.5.
 
 ```{r}
 MOFFATPDF <- function(parameters, x){
@@ -66,12 +265,19 @@ MOFFATPDF <- function(parameters, x){
   beta <- pmax(beta, 0.5+1e-6)
   
   predictedDensity <- (gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
-  
+  return(predictedDensity)
 }
 ```
 
-To use the optim function likes to minimize functions.
-For that I need a Negative Log Likelihood
+The optim function has two requirements. The first is a function that it sets out to minimize. For this I will use the Negative Log Likelihood of the function. The second requirement is the gradient of the function that is being minimized. For this I will take the partial derivative of the Negative Log Likelihood with respect to each parameter. 
+
+To obtain the Negative Log Likelihood.
+First I take the Likelihood of the parameters of f(x). $L(\mu, \alpha, \beta) = \prod f(x)$
+Next I take the log of the likelihood and apply the log law : $ln\left[ab\right] = ln\left[a\right]+ln\left[b\right]$.
+$ln\left[L(\mu, \alpha, \beta)\right] = \sum(ln\left[f(x)\right])$
+Taking the negative of this yields the Negative Log Likelihood.
+
+$$NLL = -\sum\ln\left[\frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}\right]$$
 
 ```{r}
 NLL <- function(parameters, x){
@@ -80,10 +286,30 @@ NLL <- function(parameters, x){
 }
 ```
 
-Now I need the partial derivatives of the negative log likelihood with respect to each parameter
+Now I need the partial derivatives of the negative log likelihood with respect to each parameter.
+Before doing so I applied some log laws to transform the equation.
 
-$$-\sum\ln\left[\Gamma(\beta)\right] - \ln\left[\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})\right] - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right]$$
+Log Laws:
+$ln\left[ab\right] = ln\left[a\right]+ln\left[b\right]$
+$ln\left[\frac{a}{b}\right] = ln\left[a\right]-ln\left[b\right]$
+$ln\left[a\right]^b = b\times\ln\left[a\right]$
+
+By applying these log laws the negative log likelihood transforms into an equation that is simpler to obtain the partial derivatives to. 
+
+
+$$-\sum(\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right])$$
+In order to take the partial derivative with respect to $\mu$ I utilised the chain rule.
+Let $ u = \left[1+v^2\alpha^{-2}\right] $.
+Let $ v = x - \mu $
+$\frac{\delta}{\delta\mu} = \frac{\delta}{\delta u} \frac{\delta u}{\delta v} \frac{\delta v}{\delta \mu}$
+$\frac{\delta v}{\delta \mu} = -1$
+$\frac{\delta u}{\delta v}  = 2v\alpha^{-2}$
+$\frac{\delta}{\delta u} = -\sum(-\frac{\beta}{u}) $
+
+Resulting in
 $$\frac{\delta}{\delta\mu} = -\sum\frac{2\beta(x-\mu)}{\alpha^2 + (x-\mu)^2}$$
+A similar approach was used to take the partial derivative with respect to $\alpha$ and $\beta$.
+Resulting in
 $$\frac{\delta}{\delta\alpha} = -\sum-\frac{1}{\alpha} + \frac{2\beta(x-\mu)^2}{\alpha^3 + \alpha(x-\mu)^2}$$
 To obtain the partial derivative with respect to beta I will be using the Rcode of digamma
 $$\frac{\delta}{\delta\beta} = -\sum digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right]$$
@@ -103,7 +329,7 @@ derivMOFFATPDS <- function(parameters, x){
 }
 ```
 
-Trying with optim
+Optimising the parameters.
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
 lowerBOUNDS <- c(0, 1e-6, 1.5)
@@ -111,16 +337,52 @@ lowerBOUNDS <- c(0, 1e-6, 1.5)
 RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2.5, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR2.5 <- RESULT$par
 optimPAR2.5
+```
+
+Visualising the results
+```{r}
+xl2 <- line2$x
+xl2.5 <- line2.5$x
+xVall2 <- seq(min(xl2), max(xl2), length = 963)
+xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 291)
 
 optimDENS2.5 <- MOFFATPDF(optimPAR2.5, xVall2.5)
-plot(xVall2.5, optimDENS2.5, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
+## plotting layers in ggplot
+ggplot(line2.5) + 
+  geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
+  stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2.5), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
+  ylab("p(x)") + 
+  scale_colour_manual("Legend", values = cbPalette)
 ```
+
+
+Optimising the parameters on a larger dataset.
 ```{r}
 RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR2 <- RESULT$par
 optimPAR2
-
-optimDENS2 <- MOFFATPDF(optimPAR2, xVall2)
-plot(xVall2, optimDENS2, type = "l", main = "Optimised Density Function", xlab = "x", ylab = "Density")
 ```
+Visualising the results
+```{r}
+optimDENS2 <- MOFFATPDF(optimPAR2, xVall2)
+## plotting layers in ggplot
+ggplot(line2) + 
+  geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
+  stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
+  ylab("p(x)") + 
+  scale_colour_manual("Legend", values = cbPalette)
+```
+
+Visually comparing the Moffat PDF and the Normal PDF when the parameters are estimated.
+```{r}
+ggplot(line2) +
+  geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5]) +
+  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian density"), linewidth=1.2) +
+  stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
+  ylab("p(x)") + 
+  scale_colour_manual("Legend", values = cbPalette)
+```
+It is clear that the 1D Moffat Distribution provides is a much better fit to the data.
+
+Now I will attempt to fit a 2D Moffat Distribution to the data.
 
