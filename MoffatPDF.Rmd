@@ -1,8 +1,8 @@
 ---
 title: "Moffat1D"
 output:
-  word_document: default
   html_document: default
+  word_document: default
   pdf_document: default
 date: "2024-03-21"
 ---
@@ -329,6 +329,14 @@ derivMOFFATPDS <- function(parameters, x){
 }
 ```
 
+Data to optimise.
+```{r}
+xl2 <- line2$x
+xl2.5 <- line2.5$x
+xVall2 <- seq(min(xl2), max(xl2), length = 963)
+xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 291)
+```
+
 Optimising the parameters.
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
@@ -341,11 +349,6 @@ optimPAR2.5
 
 Visualising the results
 ```{r}
-xl2 <- line2$x
-xl2.5 <- line2.5$x
-xVall2 <- seq(min(xl2), max(xl2), length = 963)
-xVall2.5 <- seq(min(xl2.5), max(xl2.5), length = 291)
-
 optimDENS2.5 <- MOFFATPDF(optimPAR2.5, xVall2.5)
 ## plotting layers in ggplot
 ggplot(line2.5) + 

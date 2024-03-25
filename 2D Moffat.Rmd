@@ -8,4 +8,173 @@ date: "2024-03-25"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+The 2D Moffat Model has this form:
+
+$$f(x,y) = A\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
+Where A = amplitude, $x0$ = x-position of the maximum, $y0$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
+
+Similarly to the 1D Moffat, the amplitude must be greater than 0. Alpha can't be equal to zero and Beta must be greater than 0.
+
+Visualising the 2D Moffat
+```{r}
+Moffat2D <- function(grid, parameters){
+  x <- grid[[1]]
+  y <- grid[[2]]
+  
+  amplitude <- parameters[[1]]
+  x0 <- parameters[[2]]
+  y0 <- parameters[[3]]
+  alpha <- parameters[[4]]
+  beta <- parameters[[5]]
+  
+  amplitude*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta)
+}
+
+#grid of variables
+xRange <- seq(-5, 5, length = 100)
+yRange <- seq(-5, 5, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+#Dummy parameters
+dummyParams <- c(amplitude = 1, x0 = 0, y0 = 0, alpha = 1, beta = 1)
+
+z <- Moffat2D(grid, dummyParams)
+zMatrix <- matrix(z, nrow = length(xRange), ncol = length(yRange))
+
+image(xRange, yRange, zMatrix, xlab = "x", ylab = "y", main = "2D Moffat")
+```
+
+Visualising the effects of changing parameters
+```{r}
+#baseline of 1,0,0,1,1
+dummyParams <- c(amplitude = 1, x0 = 0, y0 = 0, alpha = 1, beta = 1)
+dummyParams1 <- c(amplitude = 4, x0 = 0, y0 = 0, alpha = 1, beta = 1)
+dummyParams2 <- c(amplitude = 1, x0 = 3, y0 = 0, alpha = 1, beta = 1)
+dummyParams3 <- c(amplitude = 1, x0 = 0, y0 = -2, alpha = 1, beta = 1)
+dummyParams4 <- c(amplitude = 1, x0 = 0, y0 = 0, alpha = 3, beta = 1)
+dummyParams5 <- c(amplitude = 1, x0 = 0, y0 = 0, alpha = 1, beta = 2.6)
+
+#baseline plot
+z <- Moffat2D(grid, dummyParams)
+zMatrix <- matrix(z, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, zMatrix, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#increasing amplitude
+z1 <- Moffat2D(grid, dummyParams1)
+z1Matrix <- matrix(z, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, z1Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Increasing A")
+
+#moving x0
+z2 <- Moffat2D(grid, dummyParams2)
+z2Matrix <- matrix(z2, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, z2Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Moving x0")
+
+#moving y0
+z3 <- Moffat2D(grid, dummyParams3)
+z3Matrix <- matrix(z3, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, z3Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Moving y0")
+
+#Increasing alpha
+z4 <- Moffat2D(grid, dummyParams4)
+z4Matrix <- matrix(z4, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, z4Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Increasing alpha")
+
+#Increasing beta
+z5<- Moffat2D(grid, dummyParams5)
+z5Matrix <- matrix(z5, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, z5Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Increasing beta")
+
+persp(xRange, yRange, zMatrix, xlab = "x", ylab = "y", main = "2D Moffat")
+persp(xRange, yRange, z1Matrix, xlab = "x", ylab = "y", main = "2D Moffat - Increasing A")
+```
+
+The Negative Log Likelihood of the 2D Moffat Model:
+$$-\sum(\ln\left[A\right]-\beta\ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right]) $$
+```{r}
+NLL <- function(grid, parameters){
+  predictedDens <- Moffat2D(grid, parameters)
+  return(-sum(log(predictedDens)))
+}
+```
+
+
+Investigating how the parameters effect the negative log likelihood function
+```{r}
+#changing the value of the amplitude
+amplitude <- seq(0.25, 5, by = 0.25)
+
+i <- 1
+changingA <- vector("numeric", length = 20)
+
+while(i<=20){
+  parameters <- c(amplitude[[i]], 0, 0, 1, 1)
+  grid <- c(0,0)
+  changingA[i] <- (NLL(grid, parameters))
+  i <- i+1
+}
+
+#changing the value of x0
+x0 <- seq(-5, 5, by = 0.5)
+
+i <- 1
+changingx0 <- vector("numeric", length = 21)
+
+while(i<=21){
+  parameters <- c(1, x0[[i]], 0, 1, 1)
+  grid <- c(0,0)
+  changingx0[i] <- (NLL(grid, parameters))
+  i <- i+1
+}
+
+#changing the value of y0
+y0 <- seq(-5, 5, by = 0.5)
+
+i <- 1
+changingy0 <- vector("numeric", length = 21)
+
+while(i<=21){
+  parameters <- c(1, 0, y0[[i]], 1, 1)
+  grid <- c(0,0)
+  changingy0[i] <- (NLL(grid, parameters))
+  i <- i+1
+}
+
+#changing the value of alpha
+alpha <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingAlpha <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(1, 0, 0, alpha[[i]], 1)
+  grid <- c(0,0)
+  changingAlpha[i] <- (NLL(grid, parameters))
+  i <- i+1
+}
+
+#changing the value of beta
+beta <- seq(0.25, 10, by = 0.25)
+
+i <- 1
+changingBeta <- vector("numeric", length = 40)
+
+while(i<=40){
+  parameters <- c(1, 0, 0, 1, beta[[i]])
+  grid <- c(0,0)
+  changingBeta[i] <- (NLL(grid, parameters))
+  i <- i+1
+}
+
+par(mfrow = c(2,3))
+plot(amplitude, changingA, type = "l", xlab = "Amplitude", ylab = "Negative Log Likelihood")
+plot(x0, changingx0, type = "l", xlab = "x0", ylab = "Negative Log Likelihood")
+plot(y0, changingy0, type = "l", xlab = "x0", ylab = "Negative Log Likelihood")
+plot(alpha, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+plot(beta, changingBeta, type = "l", xlab = "Beta", ylab = "Negative Log Likelihood")
+```
+This is similar to the plots of the effects the parameters of the 1D Moffat Function have on the Negative Log Likelihood.
+
+Amplitude needs to be expressed in terms of alpha and beta.
+
+
 
