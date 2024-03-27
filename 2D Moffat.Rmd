@@ -176,5 +176,71 @@ This is similar to the plots of the effects the parameters of the 1D Moffat Func
 
 Amplitude needs to be expressed in terms of alpha and beta.
 
+$$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
+gradient of the negative log likelihood with respect to each parameter
+$$\frac{\delta}{\delta x_0} = -\sum\frac{2\beta(x-x_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$\frac{\delta}{\delta y_0} = -\sum\frac{2\beta(y-y_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$ \frac{\delta}{\delta\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-x_0)^2 + (y-y_0)^2)}{\alpha^3 + \alpha((x-x_0)^2+(y-y_0)^2)})$$
+$$ \frac{\delta}{\delta\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right])$$
+```{r}
+Moffat2DPDF <- function(parameters, x, y){
+  x0 <- parameters[[1]]
+  y0 <- parameters[[2]]
+  alpha <- parameters[[3]]
+  beta <- parameters[[4]]
+  
+  ((beta-1)/(pi*alpha^2))*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta)
+}
 
+NLL2D <- function(parameters, x, y){
+  predictedDens <- Moffat2DPDF(parameters, x, y)
+  return(-sum(log(predictedDens)))
+}
+```
+
+```{r}
+deriv2DNLL <- function(parameters, x, y){
+  x0 <- parameters[[1]]
+  y0 <- parameters[[2]]
+  alpha <- parameters[[3]]
+  beta <- parameters[[4]]
+  
+ dx0 <- -sum((2*beta*(x-x0))/(alpha^2 + (x-x0)^2 + (y-y0)^2))
+ dy0 <- -sum((2*beta*(y-y0))/(alpha^2 + (x-x0)^2 + (y-y0)^2))
+ dAlpha <- 2*sum(1/alpha + (beta*((x-x0)^2 + (y-y0)^2))/(alpha^3 + alpha*((x-x0)^2 + (y-y0)^2)))
+ dBeta <- -sum(1/beta - log(1+((x-x0)^2 + (y-y0)^2)/alpha^2))
+  
+  return(c(dx0, dy0, dAlpha, dBeta))
+}
+```
+
+```{r}
+initGuess <- c(x0 = 4115, y0 = 4052, alpha = 1, beta = 2)
+lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
+
+result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = POI2$x, y = POI2$y, method = "L-BFGS-B", lower = lowerBounds)
+optimPOI2Par <- result2D$par
+optimPOI2Par
+```
+
+```{r}
+xRange <- seq(4110, 4120, length = 100)
+yRange <- seq(4045, 4055, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+amplitude <- (1.9175-1)/(pi*0.6863^2)
+parameters <- c(amplitude, optimPOI2Par)
+
+zPOI2<- Moffat2D(grid, parameters)
+zPOI2Matrix <- matrix(zPOI2, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
+persp(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
+```
+
+```{r}
+ggplot(POI2, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
+  coord_fixed()
+```
 
