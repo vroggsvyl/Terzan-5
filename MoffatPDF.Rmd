@@ -262,7 +262,7 @@ MOFFATPDF <- function(parameters, x){
   beta <- parameters[[3]]
   
   alpha <- pmax(alpha, 1e-6)
-  beta <- pmax(beta, 0.5+1e-6)
+  beta <- pmax(beta, 1.5)
   
   predictedDensity <- (gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
   return(predictedDensity)

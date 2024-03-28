@@ -177,11 +177,7 @@ This is similar to the plots of the effects the parameters of the 1D Moffat Func
 Amplitude needs to be expressed in terms of alpha and beta.
 
 $$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
-gradient of the negative log likelihood with respect to each parameter
-$$\frac{\delta}{\delta x_0} = -\sum\frac{2\beta(x-x_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
-$$\frac{\delta}{\delta y_0} = -\sum\frac{2\beta(y-y_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
-$$ \frac{\delta}{\delta\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-x_0)^2 + (y-y_0)^2)}{\alpha^3 + \alpha((x-x_0)^2+(y-y_0)^2)})$$
-$$ \frac{\delta}{\delta\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right])$$
+Validating the 2D Moffat PDF
 ```{r}
 Moffat2DPDF <- function(parameters, x, y){
   x0 <- parameters[[1]]
@@ -189,9 +185,56 @@ Moffat2DPDF <- function(parameters, x, y){
   alpha <- parameters[[3]]
   beta <- parameters[[4]]
   
+  alpha <- pmax(alpha, 1e-6)
+  beta <- pmax(beta, 1 + 1e-6)
+  
   ((beta-1)/(pi*alpha^2))*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta)
 }
 
+library(pracma)
+#Test 1
+T1Params <- c(x0 = 1, y0 = 4, alpha = 0.4, beta = 2)
+MoffatIntegral2D1 <- integral2(Moffat2DPDF, xmin = -100, xmax = 100, ymin = -100, ymax = 100, parameters = T1Params)[[1]]
+MoffatIntegral2D1
+
+#Test 2
+T2Params <- c(x0 = -3, y0 = 7, alpha = 1.2, beta = 1.3)
+MoffatIntegral2D2 <- integral2(Moffat2DPDF, xmin = -100, xmax = 100, ymin = -100, ymax = 100, parameters = T2Params)[[1]]
+MoffatIntegral2D2
+
+#Test 3
+T3Params <- c(x0 = 4, y0 = 0, alpha = 3, beta = 2.4)
+MoffatIntegral2D3 <- integral2(Moffat2DPDF, xmin = -100, xmax = 100, ymin = -100, ymax = 100, parameters = T3Params)[[1]]
+MoffatIntegral2D3
+```
+```{r}
+xRange <- seq(-20, 20, length = 200)
+yRange <- seq(-20, 20, length = 200)
+grid <- expand.grid(xRange, yRange)
+
+A1 <- (T1Params[[4]]-1)/(pi * T1Params[[3]])
+zT1 <- Moffat2D(grid, parameters = c(A1, T1Params))
+zT1Matrix <- matrix(zT1, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, zT1Matrix)
+
+A2 <- (T2Params[[4]]-1)/(pi * T2Params[[3]])
+zT2 <- Moffat2D(grid, parameters = c(A2, T2Params))
+zT2Matrix <- matrix(zT2, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, zT2Matrix)
+
+A3 <- (T3Params[[4]]-1)/(pi * T3Params[[3]])
+zT3 <- Moffat2D(grid, parameters = c(A3, T3Params))
+zT3Matrix <- matrix(zT3, nrow = length(xRange), ncol = length(yRange))
+image(xRange, yRange, zT3Matrix)
+
+```
+
+Gradient of the negative log likelihood with respect to each parameter
+$$\frac{\delta}{\delta x_0} = -\sum\frac{2\beta(x-x_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$\frac{\delta}{\delta y_0} = -\sum\frac{2\beta(y-y_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$ \frac{\delta}{\delta\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-x_0)^2 + (y-y_0)^2)}{\alpha^3 + \alpha((x-x_0)^2+(y-y_0)^2)})$$
+$$ \frac{\delta}{\delta\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right])$$
+```{r}
 NLL2D <- function(parameters, x, y){
   predictedDens <- Moffat2DPDF(parameters, x, y)
   return(-sum(log(predictedDens)))
@@ -229,6 +272,7 @@ yRange <- seq(4045, 4055, length = 100)
 grid <- expand.grid(x = xRange, y = yRange)
 
 amplitude <- (1.9175-1)/(pi*0.6863^2)
+amplitude
 parameters <- c(amplitude, optimPOI2Par)
 
 zPOI2<- Moffat2D(grid, parameters)
@@ -243,4 +287,5 @@ ggplot(POI2, aes(x,y)) +
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
   coord_fixed()
 ```
+
 
