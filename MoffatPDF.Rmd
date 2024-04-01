@@ -52,11 +52,37 @@ POI1 <- T5 %>%
   filter(x>4160 & x<4180 & y>4180 & y<4200)
 POI2 <- T5 %>%
   filter(x>4105 & x< 4125 & y>4040 & y<4060)
+celestialSource1 <- T5 %>%
+  filter(x>4030 & x<4050 & y>4060 & y<4080)
+celestialSource2 <- T5 %>%
+  filter(x>4070 & x<4080 & y>4100 & y<4110)
+celestialSource3 <- T5 %>%
+  filter(x>4070 & x<4080 & y>4150 & y<4160)
 ```
 
 Viewing one of those Points of Interest
 ```{r}
-ggplot(POI2, aes(x,y))+geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + coord_fixed()
+ggplot(POI1, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
+  coord_fixed()
+ggplot(POI2, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
+  coord_fixed()
+
+ggplot(celestialSource1, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(5, 25, 125)) + 
+  coord_fixed()
+ggplot(celestialSource2, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(5, 25, 125)) + 
+  coord_fixed()
+ggplot(celestialSource3, aes(x,y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(5, 25, 125)) + 
+  coord_fixed()
 ```
 It's important to note that while a lot of the surrounding area appears to be empty, it is full of background observations. It appears blank as observations are darker in colour and more prominent when there is a higher number of other observations close by.
 
@@ -315,7 +341,7 @@ To obtain the partial derivative with respect to beta I will be using the Rcode 
 $$\frac{\delta}{\delta\beta} = -\sum digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right]$$
 
 ```{r}
-derivMOFFATPDS <- function(parameters, x){
+derivMOFFATPDF <- function(parameters, x){
   mu <- parameters[[1]]
   alpha <- parameters[[2]]
   beta <- parameters[[3]]
@@ -342,7 +368,7 @@ Optimising the parameters.
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
 lowerBOUNDS <- c(0, 1e-6, 1.5)
 
-RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2.5, method = "L-BFGS-B", lower = lowerBOUNDS)
+RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDSF, x = xl2.5, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR2.5 <- RESULT$par
 optimPAR2.5
 ```
@@ -361,7 +387,7 @@ ggplot(line2.5) +
 
 Optimising the parameters on a larger dataset.
 ```{r}
-RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDS, x = xl2, method = "L-BFGS-B", lower = lowerBOUNDS)
+RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDF, x = xl2, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR2 <- RESULT$par
 optimPAR2
 ```
@@ -389,3 +415,5 @@ It is clear that the 1D Moffat Distribution provides is a much better fit to the
 
 Now I will attempt to fit a 2D Moffat Distribution to the data.
 
+gof - KS test
+compare to normal dist

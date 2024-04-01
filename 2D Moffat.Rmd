@@ -13,6 +13,8 @@ The 2D Moffat Model has this form:
 $$f(x,y) = A\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
 Where A = amplitude, $x0$ = x-position of the maximum, $y0$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
 
+Symmetric uncorr function - same influence
+
 Similarly to the 1D Moffat, the amplitude must be greater than 0. Alpha can't be equal to zero and Beta must be greater than 0.
 
 Visualising the 2D Moffat
@@ -42,6 +44,7 @@ z <- Moffat2D(grid, dummyParams)
 zMatrix <- matrix(z, nrow = length(xRange), ncol = length(yRange))
 
 image(xRange, yRange, zMatrix, xlab = "x", ylab = "y", main = "2D Moffat")
+persp(xRange, yRange, zMatrix, xlab = "x", ylab = "y", zlab = "f(x,y)", main = "2D Moffat")
 ```
 
 Visualising the effects of changing parameters
@@ -107,7 +110,7 @@ i <- 1
 changingA <- vector("numeric", length = 20)
 
 while(i<=20){
-  parameters <- c(amplitude[[i]], 0, 0, 1, 1)
+  parameters <- c(amplitude[[i]], 1, 1, 1, 1)
   grid <- c(0,0)
   changingA[i] <- (NLL(grid, parameters))
   i <- i+1
@@ -120,7 +123,7 @@ i <- 1
 changingx0 <- vector("numeric", length = 21)
 
 while(i<=21){
-  parameters <- c(1, x0[[i]], 0, 1, 1)
+  parameters <- c(1, x0[[i]], 1, 1, 1)
   grid <- c(0,0)
   changingx0[i] <- (NLL(grid, parameters))
   i <- i+1
@@ -133,7 +136,7 @@ i <- 1
 changingy0 <- vector("numeric", length = 21)
 
 while(i<=21){
-  parameters <- c(1, 0, y0[[i]], 1, 1)
+  parameters <- c(1, 1, y0[[i]], 1, 1)
   grid <- c(0,0)
   changingy0[i] <- (NLL(grid, parameters))
   i <- i+1
@@ -146,7 +149,7 @@ i <- 1
 changingAlpha <- vector("numeric", length = 40)
 
 while(i<=40){
-  parameters <- c(1, 0, 0, alpha[[i]], 1)
+  parameters <- c(1, 1, 1, alpha[[i]], 1)
   grid <- c(0,0)
   changingAlpha[i] <- (NLL(grid, parameters))
   i <- i+1
@@ -159,7 +162,7 @@ i <- 1
 changingBeta <- vector("numeric", length = 40)
 
 while(i<=40){
-  parameters <- c(1, 0, 0, 1, beta[[i]])
+  parameters <- c(1, 1, 1, 1, beta[[i]])
   grid <- c(0,0)
   changingBeta[i] <- (NLL(grid, parameters))
   i <- i+1
@@ -258,10 +261,17 @@ deriv2DNLL <- function(parameters, x, y){
 ```
 
 ```{r}
-initGuess <- c(x0 = 4115, y0 = 4052, alpha = 1, beta = 2)
+mean(POI2$x)
+mean(POI2$y)
+```
+
+
+```{r}
+initGuess <- c(x0 = 4115.227, y0 = 4052.706, alpha = 1, beta = 2)
 lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
 
 result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = POI2$x, y = POI2$y, method = "L-BFGS-B", lower = lowerBounds)
+result2D
 optimPOI2Par <- result2D$par
 optimPOI2Par
 ```
@@ -271,21 +281,114 @@ xRange <- seq(4110, 4120, length = 100)
 yRange <- seq(4045, 4055, length = 100)
 grid <- expand.grid(x = xRange, y = yRange)
 
-amplitude <- (1.9175-1)/(pi*0.6863^2)
-amplitude
+amplitude <- (optimPOI2Par[[4]]-1)/(pi*optimPOI2Par[[3]]^2)
 parameters <- c(amplitude, optimPOI2Par)
 
 zPOI2<- Moffat2D(grid, parameters)
 zPOI2Matrix <- matrix(zPOI2, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
 image(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
 persp(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
 ```
 
 ```{r}
-ggplot(POI2, aes(x,y)) +
+model <- ggplot(POI2, aes(x,y)) +
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
   coord_fixed()
+
+library(ggExtra)
+ggMarginal(model, type = "histogram")
+```
+
+Looking at other sources
+Celestial Source 1
+```{r}
+mean(celestialSource1$x)
+mean(celestialSource1$y)
+```
+```{r}
+initGuess <- c(x0 = 4039.865, y0 = 4071.066, alpha = 1, beta = 2)
+lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
+
+result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = celestialSource1$x, y = celestialSource1$y, method = "L-BFGS-B", lower = lowerBounds)
+optimCS1Par <- result2D$par
+optimCS1Par
+```
+```{r}
+xRange <- seq(4030, 4050, length = 100)
+yRange <- seq(4060, 4080, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+amplitude <- (optimCS1Par[[4]]-1)/(pi*optimCS1Par[[3]]^2)
+parameters <- c(amplitude, optimCS1Par)
+
+zCS1<- Moffat2D(grid, parameters)
+zCS1Matrix <- matrix(zCS1, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zCS1Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
+```
+
+Celestial Source 2
+```{r}
+mean(celestialSource2$x)
+mean(celestialSource2$y)
+```
+
+```{r}
+initGuess <- c(x0 = 4073.925, y0 = 4105.563, alpha = 1, beta = 2)
+lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
+
+result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = celestialSource2$x, y = celestialSource2$y, method = "L-BFGS-B", lower = lowerBounds)
+optimCS2Par <- result2D$par
+optimCS2Par
+```
+```{r}
+xRange <- seq(4070, 4080, length = 100)
+yRange <- seq(4100, 4110, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+amplitude <- (optimCS2Par[[4]]-1)/(pi*optimCS1Par[[3]]^2)
+parameters <- c(amplitude, optimCS2Par)
+
+zCS2<- Moffat2D(grid, parameters)
+zCS2Matrix <- matrix(zCS2, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zCS2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
+```
+
+Celestial Source 3
+```{r}
+mean(celestialSource3$x)
+mean(celestialSource3$y)
+```
+```{r}
+initGuess <- c(x0 = 4074.631, y0 = 4156.233, alpha = 1, beta = 2)
+lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
+
+result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = celestialSource3$x, y = celestialSource3$y, method = "L-BFGS-B", lower = lowerBounds)
+optimCS3Par <- result2D$par
+optimCS3Par
+```
+```{r}
+xRange <- seq(4070, 4080, length = 100)
+yRange <- seq(4150, 4160, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+amplitude <- (optimCS3Par[[4]]-1)/(pi*optimCS1Par[[3]]^2)
+parameters <- c(amplitude, optimCS3Par)
+
+zCS3<- Moffat2D(grid, parameters)
+zCS3Matrix <- matrix(zCS3, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zCS3Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
 ```
 
 
+extract contours from the model 
+marginal curves
+
+GoF ? 
+
+simulating background noise - poisson generated noise
+modelling multiple close together << 
