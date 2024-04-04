@@ -426,12 +426,17 @@ while(i<= 100){
   i <- i + 1
 }
 ```
+
 ```{r}
-KSCURVE <- cbind(xRange, MOFFATCDF)
+CDF <- cbind(xRange, MOFFATCDF)
 
 par(mfrow = c(1,2))
 plot(ecdf(noTiesL2), main = "KS Test - Moffat Distribution", ylab = "Probability", col = rgb(0,0,1, alpha = 0.5))
-lines(KSCURVE$xRange, KSCURVE$MOFFATCDF, type = "l", col = cbPalette[7])
-plot(KSCURVE, type = "l", ylab = "Probability")
+lines(CDF$xRange, CDF$MOFFATCDF, type = "l", col = cbPalette[7])
+plot(CDF, type = "l", ylab = "Probability")
 ```
 
+```{r}
+numericMCDF <- unlist(MOFFATCDF)
+ks.test(x = noTiesL2, y = numericMCDF)
+```
