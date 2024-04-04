@@ -330,7 +330,7 @@ ggplot(POI1ZOOM, aes(x,y)) +
   geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
   coord_fixed()
 ```
-
+Add the marginal PDF of the model on top of the histogram
 
 ```{r}
 mean(POI2$x)
@@ -628,6 +628,10 @@ ggplot(celestialSource3, aes(x,y)) +
   geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
   coord_fixed()
 ```
+
+Add marginal theoretical curves 
+
+Add information about what contour levels are representing
 
 simulating background noise - poisson generated noise
 modelling multiple close together << 

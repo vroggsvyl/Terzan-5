@@ -420,23 +420,24 @@ integrate(MOFFATPDF, lower = min(xRange), upper = max(xRange), parameters = opti
 i <- 1
 MOFFATCDF <- vector("numeric", length = 100)
 
-while(i<= 100){
-  MOFFATCDF[i] <- integrate(MOFFATPDF, lower = xRange[[1]], upper = xRange[[i]], parameters = optimPAR2)
-  
-  i <- i + 1
+for (i in 1:100) {
+  MOFFATCDF[i] <- integrate(MOFFATPDF, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
 }
 ```
 
 ```{r}
 CDF <- cbind(xRange, MOFFATCDF)
 
-par(mfrow = c(1,2))
-plot(ecdf(noTiesL2), main = "KS Test - Moffat Distribution", ylab = "Probability", col = rgb(0,0,1, alpha = 0.5))
-lines(CDF$xRange, CDF$MOFFATCDF, type = "l", col = cbPalette[7])
-plot(CDF, type = "l", ylab = "Probability")
+plot(ecdf(noTiesL2), main = "KS Test - Moffat Distribution", ylab = "Probability", col = rgb(0,0,1, alpha = 0.1))
+lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 ```
 
 ```{r}
-numericMCDF <- unlist(MOFFATCDF)
-ks.test(x = noTiesL2, y = numericMCDF)
+ks.test(x = noTiesL2, y = MOFFATCDF)
 ```
+
+Define CDF as a function in R
+pass ^ for the ks test
+
+qq plots
+pp plots
