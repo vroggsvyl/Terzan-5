@@ -306,6 +306,7 @@ combined
 ```
 Zooming in on this point of interest to try to get a clearer picture.
 ```{r}
+library(ggExtra)
 #refiltering the POI1
 POI1ZOOM <- POI1 %>%
   filter(x>4167 & x<4177 & y>4183 & y<4193)
@@ -411,6 +412,26 @@ ggplot(POI2ZOOM, aes(x,y)) +
   geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
   coord_fixed()
 ```
+I would like to display the Marginal PDF's of the model.
+$$f_X(x) = \int_{-\infty}^{\infty} f_{XY}(x,y) dy$$
+$$f_Y(y) = \int_{-\infty}^{\infty} f_{XY}(x,y) dx$$
+
+```{r}
+data <- expand.grid(x = xRange, y = yRange)
+
+jointPDFValues <- outer(X = xRange, Y = yRange, Moffat2DPDF, parameters = optimPOI2Par)
+marginalX <- apply(jointPDFValues, 1, sum)
+marginalY <- apply(jointPDFValues, 2, sum)
+
+plot(xRange, marginalX, type = "l", xlab = "x", ylab = "Density", main = "Marginal PDF of x")
+plot(yRange, marginalY, type = "l", xlab = "y", ylab = "Density", main = "Marginal PDF of y")
+```
+```{r}
+library(cowplot)
+finalPlot <- plot_grid(mY, combined, mX)
+finalPlot
+```
+
 
 ```{r}
 celestialSource1 <- T5 %>%
