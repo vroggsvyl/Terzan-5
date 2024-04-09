@@ -397,6 +397,16 @@ It is clear that the 1D Moffat Distribution provides is a much better fit to the
 Now I will attempt to fit a 2D Moffat Distribution to the data.
 
 GOODNESS OF FIT 
+Kolmogorov-Smirnov Tests
+
+For unknown distribution F.
+$F_0$ is a pre-specified, not data dependent distribution model. < Problematic statement in this instance.
+As the parameters of the Moffat 1D distribution model were derived from the data.
+This will lead to highly conservative tests.
+
+$H_0 : F = F_0$
+$H_A : F \neq F_0$
+
 
 ```{r}
 ks.test(x = line2$x, y = "pnorm")
