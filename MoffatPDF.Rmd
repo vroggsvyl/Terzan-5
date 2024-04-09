@@ -445,7 +445,7 @@ lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 ks.test(x = noTiesL2, y = MOFFATCDF)
 ```
 
-```{r}
+``{r} #results in length errors
 MoffatCDF <- function(xRange, PDF, parameters){
   MOFFATCDF <- numeric(length = length(xRange))
   
