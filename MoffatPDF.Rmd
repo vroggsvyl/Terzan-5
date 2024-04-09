@@ -417,14 +417,13 @@ curve(pnorm(x, mean = 4115.19535, sd = 1.20138), add = TRUE, col = 4)
 xRange <- seq(4105, 4125, length = 100)
 integrate(MOFFATPDF, lower = min(xRange), upper = max(xRange), parameters = optimPAR2)
 
-i <- 1
 MOFFATCDF <- vector("numeric", length = 100)
 
 for (i in 1:100) {
   MOFFATCDF[i] <- integrate(MOFFATPDF, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
 }
+MOFFATCDF
 ```
-
 ```{r}
 CDF <- cbind(xRange, MOFFATCDF)
 
@@ -434,6 +433,34 @@ lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 
 ```{r}
 ks.test(x = noTiesL2, y = MOFFATCDF)
+```
+
+```{r}
+MoffatCDF <- function(xRange, PDF, parameters){
+  MOFFATCDF <- numeric(length = length(xRange))
+  
+  for(i in 1:100){
+    MOFFATCDF[i] <- integrate(PDF, lower = xRange[1], upper = xRange[i], parameters)$value
+  }
+  return(MOFFATCDF)
+}
+
+xRange <- seq(4105, 4125, length = 100)
+MoffatCDF(xRange = xRange, PDF = MOFFATPDF, parameters = optimPAR2)
+```
+```{r}
+xRange <- seq(4105, 4125, length = 100)
+MCDF <- function(xRange, pdf){
+  aa <- numeric(length = length(xRange))
+  for(i in 1:100){
+    aa[i] <- integrate(pdf, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
+}
+return(aa)
+}
+MCDF(xRange = xRange, pdf = MOFFATPDF)
+```
+```{r}
+ks.test(x = noTiesL2, y = MCDF, pdf = MOFFATPDF)
 ```
 
 Define CDF as a function in R
