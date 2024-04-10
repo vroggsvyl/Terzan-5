@@ -405,8 +405,21 @@ As the parameters of the Moffat 1D distribution model were derived from the data
 This will lead to highly conservative tests.
 
 $H_0 : F = F_0$
-$H_A : F \neq F_0$
+$H_1 : F \neq F_0$
 
+Test purpose: Given that $X_1, X_2, ..., X_n \sim F$. Test $H_0$ against all alternatives in $H_1$
+Statistic Definition: Supremum Distance ($D_n$) between $F_n$ and $F_0$. Where $F_n(x) = \frac{1}{n}\sum^{n}_{i = 1}1_{X_i\leq x}$
+$D_n := \sqrt{n}sup|F_n(x) - F_0(x)$
+If the null hypothesis holds then the value of $D_n$ tends to be small.
+
+The maximum difference betwen $F_0$ and $F_n$ happens at a certain value of $X_i$
+$D_n = max(D_n^+, D_n^-)$
+$D_n^+ = \sqrt{n} max(\frac{i}{n} - U_i)$
+$D_n^- = \sqrt{n} max(U_i - \frac{i - 1}{n})$
+Where $U_j$ is the j-th sorted $U_i := F_0(X_i)$
+
+$D_n$ has an asymptotic cdf given by the Kolmogorov-Smirnov K function:
+$K(x) := 1 - 2\sum_{j = 1}^{\infty}(-1)^{j-1}e^{-2j^2x^2}$
 
 ```{r}
 ks.test(x = line2$x, y = "pnorm")
@@ -416,7 +429,6 @@ noTiesL2 <- unique(xl2)
 ks.test(x = noTiesL2, y = "pnorm")
 ```
 Strongly rejects the null hypothesis
-
 
 ```{r}
 plot(ecdf(noTiesL2), main = "KS Test - Normal Distribution", ylab = "Probability")
@@ -434,6 +446,7 @@ for (i in 1:100) {
 }
 MOFFATCDF
 ```
+
 ```{r}
 CDF <- cbind(xRange, MOFFATCDF)
 
@@ -445,36 +458,40 @@ lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 ks.test(x = noTiesL2, y = MOFFATCDF)
 ```
 
-``{r} #results in length errors
-MoffatCDF <- function(xRange, PDF, parameters){
-  MOFFATCDF <- numeric(length = length(xRange))
-  
-  for(i in 1:100){
-    MOFFATCDF[i] <- integrate(PDF, lower = xRange[1], upper = xRange[i], parameters)$value
-  }
-  return(MOFFATCDF)
-}
-
-xRange <- seq(4105, 4125, length = 100)
-MoffatCDF(xRange = xRange, PDF = MOFFATPDF, parameters = optimPAR2)
-```
 ```{r}
 xRange <- seq(4105, 4125, length = 100)
 MCDF <- function(xRange, pdf){
-  aa <- numeric(length = length(xRange))
-  for(i in 1:100){
-    aa[i] <- integrate(pdf, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
+  n <- length(xRange)
+  mcdf <- numeric(length = n)
+  for(i in 1:n){
+    mcdf[i] <- integrate(pdf, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
 }
-return(aa)
+return(mcdf)
 }
 MCDF(xRange = xRange, pdf = MOFFATPDF)
 ```
 ```{r}
-ks.test(x = noTiesL2, y = MCDF, pdf = MOFFATPDF)
+#ordering the data
+sortNTL2 <- sort(noTiesL2)
+#sortNTL2
+#MCDF(xRange = sortNTL2, pdf = MOFFATPDF)
 ```
 
-Define CDF as a function in R
-pass ^ for the ks test
+
+```{r}
+ks.test(x = sortNTL2, y = MCDF, pdf = MOFFATPDF)
+```
+Accept the null hypothesis
+
+```{r}
+plot(ecdf(noTiesL2), main = "KS Test", ylab = "Probability", col = cbPalette[5])
+curve(pnorm(x, mean = 4115.19535, sd = 1.20138), add = TRUE, col = cbPalette[3], lwd = 2)
+lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[2], lwd = 2)
+legend("bottomright", legend = c("ECDF", "Normal Dist  D = 1", "1D Moffat Dist  D = 0.0366"), col = cbPalette[c(5,3,2)], lty = c(1,1,1), lwd = c(1,2,2))
+```
+
+Visually and numerically, it is evident that the normal distribution is not a good fit for the data.
+While the null hypothesis of the Kolmogorov-Smirnov test is accepted for the 1D Moffat Distribution.
 
 qq plots
 pp plots
