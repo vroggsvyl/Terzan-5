@@ -7,6 +7,39 @@ date: "2024-03-25"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r}
+library(ggplot2)
+library(plotly)
+library(ggpointdensity)
+library(viridis)
+library(tidyr)
+library(ggExtra)
+
+## Color pallete
+cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+Importing the data and transforming for stages required at this analysis step.
+```{r}
+library(here)
+i_am("2D Moffat.Rmd")
+# laptop data from csv
+# Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+# head(Terzan5)
+
+#fishbowl data from ODS
+library(readODS)
+Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+#removing extraneous columns
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+
+#filtering into two Points of Interest
+POI1 <- T5 %>%
+  filter(x>4160 & x<4180 & y>4180 & y<4200)
+POI2 <- T5 %>%
+  filter(x>4105 & x< 4125 & y>4040 & y<4060)
+
+```
 
 The 2D Moffat Model has this form:
 
@@ -412,6 +445,11 @@ ggplot(POI2ZOOM, aes(x,y)) +
   geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
   coord_fixed()
 ```
+Alternate zoom method
+```{r}
+combined + coord_cartesian(xlim = c(4110, 4120), ylim = c(4048, 4058))
+```
+
 I would like to display the Marginal PDF's of the model.
 $$f_X(x) = \int_{-\infty}^{\infty} f_{XY}(x,y) dy$$
 $$f_Y(y) = \int_{-\infty}^{\infty} f_{XY}(x,y) dx$$
@@ -648,6 +686,39 @@ ggplot(celestialSource3, aes(x,y)) +
   geom_point(size = 0.2) + 
   geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
   coord_fixed()
+```
+
+Modelled Areas
+```{r}
+ggplot(T5,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
+  coord_fixed() + 
+  #POI1
+  geom_segment(aes(x = 4160, y = 4180, xend = 4180, yend = 4180)) +
+  geom_segment(aes(x = 4160, y = 4200, xend = 4180, yend = 4200)) +
+  geom_segment(aes(x = 4160, y = 4180, xend = 4160, yend = 4200)) +
+  geom_segment(aes(x = 4180, y = 4180, xend = 4180, yend = 4200)) + 
+  #POI2
+  geom_segment(aes(x = 4105, y = 4040, xend = 4125, yend = 4040)) +
+  geom_segment(aes(x = 4105, y = 4060, xend = 4125, yend = 4060)) +
+  geom_segment(aes(x = 4105, y = 4040, xend = 4105, yend = 4060)) +
+  geom_segment(aes(x = 4125, y = 4040, xend = 4125, yend = 4060)) + 
+  #CS1
+  geom_segment(aes(x = 4030, y = 4060, xend = 4050, yend = 4060)) +
+  geom_segment(aes(x = 4030, y = 4080, xend = 4050, yend = 4080)) +
+  geom_segment(aes(x = 4030, y = 4060, xend = 4030, yend = 4080)) +
+  geom_segment(aes(x = 4050, y = 4060, xend = 4050, yend = 4080)) + 
+  #CS2
+  geom_segment(aes(x = 4070, y = 4100, xend = 4080, yend = 4100)) +
+  geom_segment(aes(x = 4070, y = 4110, xend = 4080, yend = 4110)) +
+  geom_segment(aes(x = 4070, y = 4100, xend = 4070, yend = 4110)) +
+  geom_segment(aes(x = 4080, y = 4100, xend = 4080, yend = 4110)) + 
+  #CS3
+  geom_segment(aes(x = 4070, y = 4150, xend = 4080, yend = 4150)) +
+  geom_segment(aes(x = 4070, y = 4160, xend = 4080, yend = 4160)) +
+  geom_segment(aes(x = 4070, y = 4150, xend = 4070, yend = 4160)) +
+  geom_segment(aes(x = 4080, y = 4150, xend = 4080, yend = 4160))
 ```
 
 Add marginal theoretical curves 
