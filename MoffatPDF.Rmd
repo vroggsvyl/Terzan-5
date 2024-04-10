@@ -495,3 +495,41 @@ While the null hypothesis of the Kolmogorov-Smirnov test is accepted for the 1D 
 
 qq plots
 pp plots
+
+The next goal is to create some pp plots and qq plots for the 1D Moffat Function.
+in order to do that I require a function that calculates the Quantiles of the moffat function.
+
+Before finding the quantiles 
+
+First create a function for pmoffat
+```{r}
+pmoffat <- function(range, q, params){
+  integrate(MOFFATPDF, lower = min(range), upper = q, parameters = params)
+}
+
+qRange <- seq(4105, 4125, length = 1000)
+#qRange
+l <- length(qRange)
+
+#pmoffat(xRange, 4115.5, optimPAR2)$value
+
+probs <- numeric(length = l)
+for(i in 1:l){
+ probs[i] <- pmoffat(range = xRange, qRange[i] , params = optimPAR2)$value
+}
+```
+
+```{r}
+quantiles <- data.frame(qRange, probs)
+```
+
+plot with approx quartiles
+```{r}
+ggplot(line2) + 
+  geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
+  stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
+  ylab("p(x)") + 
+  scale_colour_manual("Legend", values = cbPalette) +
+  geom_vline(xintercept = c(4114.758, 4115.242, 4115.697), linetype = "dashed", lwd = 0.2, col = "black")
+
+```
