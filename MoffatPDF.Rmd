@@ -421,6 +421,9 @@ Where $U_j$ is the j-th sorted $U_i := F_0(X_i)$
 $D_n$ has an asymptotic cdf given by the Kolmogorov-Smirnov K function:
 $K(x) := 1 - 2\sum_{j = 1}^{\infty}(-1)^{j-1}e^{-2j^2x^2}$
 
+Let F be the data in line 2
+Let $F_0$ be the modelled normal distribution
+
 ```{r}
 ks.test(x = line2$x, y = "pnorm")
 ```
@@ -434,6 +437,8 @@ Strongly rejects the null hypothesis
 plot(ecdf(noTiesL2), main = "KS Test - Normal Distribution", ylab = "Probability")
 curve(pnorm(x, mean = 4115.19535, sd = 1.20138), add = TRUE, col = 4)
 ```
+
+Let $F_0$ be the modelled 1D Moffat Distribution.
 
 ```{r}
 xRange <- seq(4105, 4125, length = 100)
