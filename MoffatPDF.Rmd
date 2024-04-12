@@ -457,18 +457,16 @@ lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 ```{r}
 ks.test(x = noTiesL2, y = MOFFATCDF)
 ```
-
+tweak 
 ```{r}
 xRange <- seq(4105, 4125, length = 100)
-MCDF <- function(xRange, pdf){
-  n <- length(xRange)
-  mcdf <- numeric(length = n)
-  for(i in 1:n){
-    mcdf[i] <- integrate(pdf, lower = xRange[1], upper = xRange[i], parameters = optimPAR2)$value
+MCDF <- function(x){
+
+   return(integrate(MOFFATPDF, lower = 4100, upper = x, parameters = optimPAR2)$value)
 }
-return(mcdf)
-}
-MCDF(xRange = xRange, pdf = MOFFATPDF)
+
+VMCDF <- Vectorize(MCDF, vectorize.args = "x")
+VMCDF(x = 4115:4225)
 ```
 ```{r}
 #ordering the data
@@ -479,7 +477,7 @@ sortNTL2 <- sort(noTiesL2)
 
 
 ```{r}
-ks.test(x = sortNTL2, y = MCDF, pdf = MOFFATPDF)
+ks.test(x = sortNTL2, y = VMCDF)
 ```
 Accept the null hypothesis
 
@@ -499,15 +497,91 @@ pp plots
 The next goal is to create some pp plots and qq plots for the 1D Moffat Function.
 in order to do that I require a function that calculates the Quantiles of the moffat function.
 
+The QQ-plot should compare the the quantiles from the data to the quantiles of the 1D Moffat model.
+Here is the quantiles from the data.
+```{r}
+quantile(sortNTL2)
+```
+Now i need to calculate the quantiles of the create 1D Moffat model.
+In order to find the quantiles, I will use interpolation.
+
+```{r}
+# Define the inverse cumulative distribution function (quantile function) for Moffat distribution
+qmoffat <- function(p, params) {
+  # Define a function to find the root (quantile) of CDF - p, this equates to 0.
+  findRoot <- function(x) {
+    integrate(MOFFATPDF, lower = -Inf, upper = x, parameters = params)$value - p
+  }
+  
+  # Find the root (quantile) using uniroot. For a probability, this will look to find a value of x that causes the findRoot function to equate to 0. This value of x is the quantile.
+  quantile <- uniroot(findRoot, interval = c(4000,4200))$root
+  return(quantile)
+}
+
+probs <- seq(0.01, 0.99, by = 0.01)
+
+qmoffat(0.5, optimPAR2)
+
+Vqmoffat <- Vectorize(qmoffat, vectorize.args = "p")
+quantiles <- Vqmoffat(p = probs, params = optimPAR2)
+
+data.frame(probs, quantiles)
+```
+```{r}
+quantile(sortNTL2) #data
+quantile(quantiles) #theoretical values
+```
+```{r}
+qqplot(quantiles, sortNTL2,  xlab = "Moffat Model Theoretical Quantiles", ylab = "Data Quantiles")
+abline(a = 0, b =1, col = "red")
+par(pty = "s")
+qqplot(quantiles, sortNTL2, ylim = c(4112, 4118), xlab = "Moffat Model Theoretical Quantiles", ylab = "Data Quantiles")
+abline(a = 0, b = 1, col = "red")
+```
+
+```{r}
+model <- VMCDF(4105:4125)
+interModel <- approx(ppoints(model), model, ppoints(sortNTL2))$y
+#plot(VMCDF(x = 4105:4125), ppoints(sortNTL2))
+plot(ppoints(sortNTL2), ppoints(sortNTL2), main = "P-P Plot", xlab = "Raw Data Probability", ylab = "Model Probability", col = "blue", pch = 16)
+points(ppoints(sortNTL2), ppoints(sort(interModel)), col = "red", pch = 16)
+abline(0, 1, col = "red", lty = 2)  # Add a reference line
+legend("bottomright", legend = c("Raw Data", "Interpolated Model"), col = c("blue", "red"), pch = c(16, 16))
+```
+
+
+
+```{r}
+fitdist(sortNTL2, "moffat", parameters = optimPAR2, x = 4105:4125)
+```
+
+```{r}
+dmoffat <- function(parameters, x){
+  mu <- parameters[[1]]
+  alpha <- parameters[[2]]
+  beta <- parameters[[3]]
+  
+  alpha <- pmax(alpha, 1e-6)
+  beta <- pmax(beta, 1.5)
+  
+  predictedDensity <- (gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
+  return(predictedDensity)
+}
+```
+
+
 Before finding the quantiles 
 
 First create a function for pmoffat
 ```{r}
-pmoffat <- function(range, q, params){
-  integrate(MOFFATPDF, lower = min(range), upper = q, parameters = params)
+pmoffat <- function(q, params){
+  integrate(MOFFATPDF, lower = -Inf, upper = q, parameters = params)
 }
 
-qRange <- seq(4105, 4125, length = 1000)
+
+pmoffat(4115, optimPAR2)
+
+qRange <- seq(4105, 4125, length = 100)
 #qRange
 l <- length(qRange)
 
@@ -515,13 +589,21 @@ l <- length(qRange)
 
 probs <- numeric(length = l)
 for(i in 1:l){
- probs[i] <- pmoffat(range = xRange, qRange[i] , params = optimPAR2)$value
+ probs[i] <- pmoffat(qRange[i] , params = optimPAR2)$value
 }
+
+probs #this is a vector of probabilities
 ```
 
 ```{r}
 quantiles <- data.frame(qRange, probs)
+quantiles #this is a dataframe that matches each probability to it's x-value
 ```
+
+
+
+
+
 
 plot with approx quartiles
 ```{r}
@@ -533,3 +615,6 @@ ggplot(line2) +
   geom_vline(xintercept = c(4114.758, 4115.242, 4115.697), linetype = "dashed", lwd = 0.2, col = "black")
 
 ```
+
+
+

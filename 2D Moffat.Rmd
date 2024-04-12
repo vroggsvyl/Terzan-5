@@ -379,6 +379,7 @@ result2D <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = POI2$x, y = 
 result2D
 optimPOI2Par <- result2D$par
 optimPOI2Par
+
 ```
 
 ```{r}
@@ -455,6 +456,9 @@ $$f_X(x) = \int_{-\infty}^{\infty} f_{XY}(x,y) dy$$
 $$f_Y(y) = \int_{-\infty}^{\infty} f_{XY}(x,y) dx$$
 
 ```{r}
+#filter(x>4110 & x<4120 & y>4048 & y<4058)
+xRange <- seq(4110, 4120, length = 100)
+yRange <- seq(4048, 4058, length = 100)
 data <- expand.grid(x = xRange, y = yRange)
 
 jointPDFValues <- outer(X = xRange, Y = yRange, Moffat2DPDF, parameters = optimPOI2Par)
@@ -463,7 +467,27 @@ marginalY <- apply(jointPDFValues, 2, sum)
 
 plot(xRange, marginalX, type = "l", xlab = "x", ylab = "Density", main = "Marginal PDF of x")
 plot(yRange, marginalY, type = "l", xlab = "y", ylab = "Density", main = "Marginal PDF of y")
+
+ggplot(POI2$x) + 
+  geom_density(x = xRange, y = marginalX)
 ```
+```{r}
+library(cowplot)
+
+margX <- ggdensity(POI2, "x") + geom_histogram()
+margY <- ggdensity(POI2, "y") + rotate()
+margY
+
+combined <- combined + rremove("legend")
+margY <- margY + clean_theme() + rremove("legend") 
+margX <- margX + clean_theme() + rremove("legend")
+# Arranging the plot using cowplot
+
+plot_grid(margX, NULL, combined, margY, ncol = 2, align = "hv", 
+      rel_widths = c(2, 1), rel_heights = c(1, 2))
+
+```
+
 ```{r}
 library(cowplot)
 finalPlot <- plot_grid(mY, combined, mX)
@@ -727,3 +751,17 @@ Add information about what contour levels are representing
 
 simulating background noise - poisson generated noise
 modelling multiple close together << 
+
+Look at other thesis statements
+Start thinking big picture
+Conclusions?
+
+uni-variate mm - problematic?
+Bi-variate mixture modelling
+packages for mixture modelling
+viable functions for density
+inverse cdf
+cdf
+
+have a look at packages for mixture modelling and what they require - expecially for bivariate mixture modelling
+
