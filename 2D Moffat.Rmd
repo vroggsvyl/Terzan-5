@@ -224,7 +224,7 @@ Moffat2DPDF <- function(parameters, x, y){
   alpha <- pmax(alpha, 1e-6)
   beta <- pmax(beta, 1 + 1e-6)
   
-  ((beta-1)/(pi*alpha^2))*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta)
+  return(((beta-1)/(pi*alpha^2))*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta))
 }
 
 library(pracma)
@@ -382,6 +382,9 @@ optimPOI2Par
 
 ```
 ```{r}
+#check, the area under the curve should be equal to 1.
+integral2(Moffat2DPDF, xmin = 3000, xmax = 5000, ymin = 3000, ymax = 5000, parameters = optimPOI2Par)[[1]]
+
 Moffat2DPDF(optimPOI2Par, 4115.26, 4051.90)
 ```
 
@@ -459,60 +462,131 @@ I would like to display the Marginal PDF's of the model.
 $$f_X(x) = \int_{-\infty}^{\infty} f_{XY}(x,y) dy$$
 $$f_Y(y) = \int_{-\infty}^{\infty} f_{XY}(x,y) dx$$
 
+Obtaining Marginal PDF's - Technique 1
 ```{r}
 xRange <- seq(4105, 4125, length = 200)
 yRange <- seq(4040, 4060, length = 200)
 data <- expand.grid(x = xRange, y = yRange)
 
-#for all values within the above grid, apply the 2D Moffat PDF function with the optimised parameters. This will generate a grid of values. Where X is Rows and Y are columns
+#for all values within the above grid, apply the 2D Moffat PDF function with the optimised parameters. This will generate a grid of values. Where X is rows and Y are columns
 jointPDFValues <- outer(X = xRange, Y = yRange, Moffat2DPDF, parameters = optimPOI2Par)
 
-#For the marginal PDF of X, integrate (or in this instance sum) all the values 
+#check
+tot <- sum(jointPDFValues)
+
+#To obtain the marginal PDFS, I need to integrate the joint function with respect to one of the variables. 
+#Instead I sum up all the values in each row. This has the effect of integrating with respect to y. As I take the value from each position over the range. 
 marginalX <- apply(jointPDFValues, 1, sum)
 marginalY <- apply(jointPDFValues, 2, sum)
 
+data.frame(xRange, marginalX)
+#checks - the sum of each marginal distribution should equal the sum of the whole area.
+sum(marginalX)
+sum(marginalY)
 
 plot(xRange, marginalX, type = "l", xlab = "x", ylab = "Density", main = "Marginal PDF of x")
 plot(yRange, marginalY, type = "l", xlab = "y", ylab = "Density", main = "Marginal PDF of y")
 ```
+Obtaining Marginal PDFs - Technique 2
 ```{r}
-MARGINALY <- function(Y){
-  jointPDFValues <- outer(xRange, Y, Moffat2DPDF, parameters = optimPOI2Par)
-  MARGINY <- apply(jointPDFValues, 2, sum)
-  return(MARGINY)
-}
-```
-
-
-```{r}
-optimPOI2Par
-
 xRange <- seq(4105, 4125, length = 200)
 yRange <- seq(4040, 4060, length = 200)
-marginalXdf <- data.frame(x = xRange, density = marginalX)
-marginalYdf <- data.frame(y = yRange, density = marginalY)
 
-margX <- ggplot(marginalXdf) +
-  geom_line(aes(x = x, y = density), col = cbPalette[2]) +
+Rx <- length(xRange) - 1
+Ry <- length(yRange) - 1
+
+marginalX <- numeric(length = Rx)
+for(i in 1:Rx){
+  marginalX[i] <- integral2(Moffat2DPDF, xmin = xRange[i], xmax = xRange[i+1], ymin = 4040, ymax = 4060, parameters = optimPOI2Par)[[1]]
+}
+
+sum(marginalX) #checking it sums to 1 - expect it to be a little less as it isn't summed over infinite (x,y) plain
+
+marginalY <- numeric(length = Ry)
+for(i in 1:Ry){
+  marginalY[i] <- integral2(Moffat2DPDF, xmin = 4105, xmax = 4125, ymin = yRange[i], ymax = yRange[i+1], parameters = optimPOI2Par)[[1]]
+}
+
+sum(marginalY) #checking it sums to 1
+
+xMids <- numeric(length = Rx)
+for(i in 1:Rx){
+  xMids[i] <- (xRange[i]+xRange[i+1])/2
+}
+yMids <- numeric(length = Ry)
+for(i in 1:Ry){
+  yMids[i] <- (yRange[i]+yRange[i+1])/2
+}
+
+dataframeMarginalX <- data.frame(x = xMids, y = marginalX)
+dataframeMarginalY <- data.frame(x = yMids, y = marginalY)
+
+plot(dataframeMarginalX, type = "l")
+plot(dataframeMarginalY, type = "l")
+
+```
+Plotting Marginal PDFs and histograms from the model
+```{r}
+margX <- ggplot(dataframeMarginalX) +
+  geom_line(aes(x = xMids, y = marginalX), col = cbPalette[2]) +
   labs(x = "x", y = "Density", main = "Marginal PDF of x") 
 
-margY <- ggplot(marginalYdf) +
-  geom_line(aes(x = y, y = density), col = cbPalette[2]) +
+margY <- ggplot(dataframeMarginalY) +
+  geom_line(aes(x = yMids, y = marginalY), col = cbPalette[2]) +
   labs(x = "y", y = "Density", main = "Marginal PDF of y") +
   rotate()
-
 
 histX <- ggplot(POI2, aes(x = x)) +
   geom_histogram(aes(y = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5])
 
-histY <- ggplot(POI2, aes(y = y)) +
-  geom_histogram(aes(x = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5])
+histY <- ggplot(POI2, aes(x = y)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5]) + 
+  rotate()
 
 margX
 margY
 histX
 histY
 ```
+```{r}
+library(ggplot2)
+library(cowplot)
+library(ggpubr)
+
+
+xMarg <- numeric(length = 200)
+for(i in 1:200){
+  xMarg[i] <- Moffat2DPDF(optimPOI2Par, xRange[i], optimPOI2Par[2])
+}
+
+xMargdf <- data.frame(xRange, xMarg)
+
+histogramWithMarginalX <- ggplot(POI2, aes(x = x)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 250, col = cbPalette[3], fill = cbPalette[5]) +
+  geom_line(data = xMargdf, aes(x = xRange, y = xMarg), col = cbPalette[2]) +
+  labs(x = "x", y = "Density", main = "Marginal PDF of x") 
+
+histogramWithMarginalX
+
+yMarg <- numeric(length = 200)
+for(i in 1:200){
+  yMarg[i] <- Moffat2DPDF(optimPOI2Par, optimPOI2Par[1], yRange[i])
+}
+
+yMargdf <- data.frame(yRange, yMarg)
+
+histogramWithMarginalY <- ggplot(POI2, aes(x = y)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 250, col = cbPalette[3], fill = cbPalette[5]) +
+  geom_line(data = yMargdf, aes(x = yRange, y = yMarg), col = cbPalette[2]) +
+  labs(x = "y", y = "Density", main = "Marginal PDF of y") + rotate()
+
+histogramWithMarginalY
+
+plot_grid(histogramWithMarginalX, NULL, combined, histogramWithMarginalY, ncol = 2, align = "hv", rel_widths = c(2, 1), rel_heights = c(1, 2), axis = c("l", "b"))
+```
+
+
+All together
 ```{r}
 library(cowplot)
 
@@ -527,52 +601,25 @@ plot_grid(margX, NULL, NULL, histX, NULL, NULL, combined, histY, margY, ncol = 3
       rel_widths = c(3, 1, 1), rel_heights = c(1, 1, 3))
 
 ```
-```{r}
-marginalWithHist <- ggMarginal(combined, type = "histogram", bins = 100)
-
-plot_grid(margX, NULL, marginalWithHist, margY, ncol = 2, align = "hv", axis = c("l", "b"), 
-      rel_widths = c(2, 1), rel_heights = c(1, 2))
-```
-
-
+Overlaying histograms with the marginal PDFs
 ```{r}
 histogramWithMarginalX <- ggplot(POI2, aes(x = x)) +
   geom_histogram(aes(y = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5]) +
-  geom_line(data = marginalXdf, aes(x = x, y = density), col = cbPalette[2]) +
+  geom_line(data = dataframeMarginalX, aes(x = xMids, y = marginalX), col = cbPalette[2]) +
   labs(x = "x", y = "Density", main = "Marginal PDF of x") 
 
 histogramWithMarginalX
 
-histogramWithMarginalY <- ggplot(POI2, aes(y = y)) +
-  geom_histogram(aes(x = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5]) +
-  geom_line(data = marginalYdf, aes(x = y, y = density), col = cbPalette[2]) +
-  labs(x = "Density", y = "y", main = "Marginal PDF of Y") 
+histogramWithMarginalY <- ggplot(POI2, aes(x = y)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 100, col = cbPalette[3], fill = cbPalette[5]) +
+  geom_line(data = dataframeMarginalY, aes(x = yMids, y = marginalY), col = cbPalette[2]) +
+  labs(x = "y", y = "Density", main = "Marginal PDF of Y") + rotate()
 
 histogramWithMarginalY
 
-#plot_grid(histogramWithMarginalX, NULL, combined, histogramWithMarginalY, ncol = 2, align = "hv", rel_widths = c(2, 1), rel_heights = c(1, 2), axis = c("l", "b"))
+plot_grid(histogramWithMarginalX, NULL, combined, histogramWithMarginalY, ncol = 2, align = "hv", rel_widths = c(2, 1), rel_heights = c(1, 2), axis = c("l", "b"))
 ```
-```{r}
-source <- ggplot(POI2, aes(x,y)) +
-  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
-  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
-  coord_fixed()
-
-marginalSource <- ggMarginal(source, "histogram")
-
-marginalSource
-
-sourceWithContours <- source + 
-  geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[5], alpha = 1, linewidth= 0.3) 
-
-sourceWithContours
-
-marginalSourceWithContours <- ggMarginal(sourceWithContours, "histogram")
-
-marginalSourceWithContours
-```
-
-
+Histogram and modelled marginal PDF's have the same shape but not the same scale
 
 ```{r}
 celestialSource1 <- T5 %>%
