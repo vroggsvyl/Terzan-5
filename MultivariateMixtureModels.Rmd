@@ -1,0 +1,58 @@
+---
+title: "Multivariate Mixture Models"
+output: html_document
+date: "2024-04-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Importing the Data
+```{r}
+library(here)
+i_am("MultivariateMixtureModels.Rmd")
+# laptop data from csv
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+# head(Terzan5)
+
+#fishbowl data from ODS
+# library(readODS)
+# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+#removing extraneous columns
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+
+library(ggplot2)
+library(ggpointdensity)
+library(viridis)
+
+ggplot(T5,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
+  coord_fixed()
+```
+Filtering down to area of interest
+```{r}
+library(tidyr)
+library(plotly)
+interestArea <- T5 %>%
+  filter(x>4100 & x<4150 & y>4025 & y<4075)
+
+ggplot(interestArea,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
+  coord_fixed()
+```
+```{r}
+ggplot(interestArea,aes(x,y)) +
+  geom_point(size = 0.5)
+```
+
+
+There is three clearly evident celestial sources in this area.
+There are two small areas that could also be celestial sources (located above and below the highest definitive source).
+
+I will be attempting to fit a multivariate mixture model for the entire area. The model will contain three(?) individual 2D Moffat distributions.
+
+The lowest and densest source has already been modelled individually and is denoted as POI2 in previous Rmarkdown files. 
