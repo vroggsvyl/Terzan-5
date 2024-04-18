@@ -13,12 +13,12 @@ Importing the Data
 library(here)
 i_am("MultivariateMixtureModels.Rmd")
 # laptop data from csv
-#Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
 
 #fishbowl data from ODS
-library(readODS)
-Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+# library(readODS)
+# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
 #removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
@@ -102,13 +102,15 @@ trial <- mvnormalmixEM(interestArea, k = 3)
 par(pty = "s")
 plot.mixEM(trial, whichplots = 2)
 ```
+
 ```{r}
 plot.mixEM(trial, whichplots = 1)
 trial$lambda
 trial$mu
 trial$sigma
 ```
-
+- returns values of (4115.262, 4051.881), for the celestial source that has already been examined.
+Individually this returned (4115.261, 4051.904)
 ```{r}
 library(mixAK)
 NMixEM(datafull, K = 2)

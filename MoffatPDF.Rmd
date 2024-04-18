@@ -30,12 +30,12 @@ library(here)
 i_am("MoffatPDF.Rmd")
 
 # laptop data from csv
-# Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
 
 #fishbowl data from ODS
-library(readODS)
-Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+# library(readODS)
+# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
 #removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
@@ -73,22 +73,22 @@ It's important to note that while a lot of the surrounding area appears to be em
 
 Before fitting a 2D Moffat Model, I want to simplify and fit a 1D model to see if it is the most appropriate fit to the data. To do that, I'm going to slice my celestial sources (POI's) into lines, with fewer observations and treat them as being one-dimensional. 
 ```{r}
-line0 <- POI2 %>%
-  filter(y>4048.5 & y< 4049.5)
-line1 <- POI2 %>%
-  filter(y>4049.5 & y< 4050.5)
+# line0 <- POI2 %>%
+#   filter(y>4048.5 & y< 4049.5)
+# line1 <- POI2 %>%
+#   filter(y>4049.5 & y< 4050.5)
 line2 <- POI2 %>%
   filter(y>4050.5 & y< 4051.5)
-line3 <- POI2 %>%
-  filter(y>4051.5 & y< 4052.5)
-line4 <- POI2 %>%
-  filter(y>4052.5 & y< 4053.5)
-line5 <- POI2 %>%
-  filter(y>4053.5 & y< 4054.5)
-line6 <- POI2 %>%
-  filter(y>4054.5 & y< 4055.5)
-lineback <- POI2 %>%
-  filter(y>4055 & y< 4060)
+# line3 <- POI2 %>%
+#   filter(y>4051.5 & y< 4052.5)
+# line4 <- POI2 %>%
+#   filter(y>4052.5 & y< 4053.5)
+# line5 <- POI2 %>%
+#   filter(y>4053.5 & y< 4054.5)
+# line6 <- POI2 %>%
+#   filter(y>4054.5 & y< 4055.5)
+# lineback <- POI2 %>%
+#   filter(y>4055 & y< 4060)
 
 line2.5 <- POI2 %>%
   filter(y>4050.5 & y< 4051)
@@ -489,7 +489,6 @@ sortNTL2 <- sort(noTiesL2)
 ```{r}
 ks.test(x = sortNTL2, y = VMCDF)
 ```
-Accept the null hypothesis
 
 ```{r}
 plot(ecdf(noTiesL2), main = "KS Test", ylab = "Probability", col = cbPalette[5])
@@ -501,8 +500,12 @@ legend("bottomright", legend = c("ECDF", "Normal Dist  D = 1", "1D Moffat Dist  
 Visually and numerically, it is evident that the normal distribution is not a good fit for the data.
 While the null hypothesis of the Kolmogorov-Smirnov test is accepted for the 1D Moffat Distribution.
 
-qq plots
-pp plots
+Accept the null hypothesis
+!Warning assumption violation - model derived from the dataset. Use bootstrapping KS or Anderson-Darling
+```{r}
+library(DescTools)
+AndersonDarlingTest(x = sortNTL2, null = VMCDF)
+```
 
 The next goal is to create some pp plots and qq plots for the 1D Moffat Function.
 in order to do that I require a function that calculates the Quantiles of the moffat function.
@@ -567,6 +570,14 @@ empiricalProbs <- dataset(xRANGE)
 plot(thereoticalProbs, empiricalProbs, main = "P-P Plot", xlab = "Theoretical Probabilities", ylab = "Sample Probabilities", col = "blue", pch = 16)
 abline(0, 1, col = "red", lty = 2)  # Add a reference line
 ```
+```{r}
+par(mfrow = c(1,2))
+qqplot(quantiles, sortNTL2,  xlab = "Moffat Model Theoretical Quantiles", ylab = "Data Quantiles")
+abline(a = 0, b =1, col = "red")
+plot(thereoticalProbs, empiricalProbs, main = "P-P Plot", xlab = "Theoretical Probabilities", ylab = "Sample Probabilities", col = "blue", pch = 16)
+abline(0, 1, col = "red", lwd = 2)  # Add a reference line
+```
+
 
 plot with quartiles
 ```{r}
