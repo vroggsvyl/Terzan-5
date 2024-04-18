@@ -28,15 +28,19 @@ Importing the data.
 ```{r}
 library(here)
 i_am("MoffatPDF.Rmd")
-Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
-head(Terzan5)
-```
 
-Removing extraneous readings.
-```{r}
+# laptop data from csv
+# Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+# head(Terzan5)
+
+#fishbowl data from ODS
+library(readODS)
+Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+#removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
 ```
+
 
 Viewing the dataset via a density heatmap.
 ```{r}
@@ -545,82 +549,33 @@ qqplot(quantiles, sortNTL2, ylim = c(4112, 4118), xlab = "Moffat Model Theoretic
 abline(a = 0, b = 1, col = "red")
 ```
 
+A P-P plot  is used for assessing how close a dataset fits to a particular model. In this instance it is used to see how well the dataset (the "1 Dimensional" Slice of the celestial source) fits to the 1D Moffat distribution with the parameters given by the previous optimisation. 
+The two cumulative distribution functions are plotted against each other. 
+
 ```{r}
-model <- VMCDF(4105:4125)
-interModel <- approx(ppoints(model), model, ppoints(sortNTL2))$y
-#plot(VMCDF(x = 4105:4125), ppoints(sortNTL2))
-plot(ppoints(sortNTL2), ppoints(sortNTL2), main = "P-P Plot", xlab = "Raw Data Probability", ylab = "Model Probability", col = "blue", pch = 16)
-points(ppoints(sortNTL2), ppoints(sort(interModel)), col = "red", pch = 16)
+xRANGE <- seq(4105, 4125, length = length(sortNTL2))
+model <- VMCDF(xRANGE) #this represents the cumulative distribution of the 1D moffat distribution 
+plot(x = xRANGE, y = model)
+dataset <- ecdf(sortNTL2)#this represents the cumulative distribution of the dataset
+plot(dataset)
+```
+
+```{r}
+thereoticalProbs <- model
+empiricalProbs <- dataset(xRANGE)
+
+plot(thereoticalProbs, empiricalProbs, main = "P-P Plot", xlab = "Theoretical Probabilities", ylab = "Sample Probabilities", col = "blue", pch = 16)
 abline(0, 1, col = "red", lty = 2)  # Add a reference line
-legend("bottomright", legend = c("Raw Data", "Interpolated Model"), col = c("blue", "red"), pch = c(16, 16))
 ```
 
-
-
+plot with quartiles
 ```{r}
-fitdist(sortNTL2, "moffat", parameters = optimPAR2, x = 4105:4125)
-```
-
-```{r}
-dmoffat <- function(parameters, x){
-  mu <- parameters[[1]]
-  alpha <- parameters[[2]]
-  beta <- parameters[[3]]
-  
-  alpha <- pmax(alpha, 1e-6)
-  beta <- pmax(beta, 1.5)
-  
-  predictedDensity <- (gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
-  return(predictedDensity)
-}
-```
-
-
-Before finding the quantiles 
-
-First create a function for pmoffat
-```{r}
-pmoffat <- function(q, params){
-  integrate(MOFFATPDF, lower = -Inf, upper = q, parameters = params)
-}
-
-
-pmoffat(4115, optimPAR2)
-
-qRange <- seq(4105, 4125, length = 100)
-#qRange
-l <- length(qRange)
-
-#pmoffat(xRange, 4115.5, optimPAR2)$value
-
-probs <- numeric(length = l)
-for(i in 1:l){
- probs[i] <- pmoffat(qRange[i] , params = optimPAR2)$value
-}
-
-probs #this is a vector of probabilities
-```
-
-```{r}
-quantiles <- data.frame(qRange, probs)
-quantiles #this is a dataframe that matches each probability to it's x-value
-```
-
-
-
-
-
-
-plot with approx quartiles
-```{r}
+q <- quantile(quantiles)
 ggplot(line2) + 
   geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
   stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
   ylab("p(x)") + 
   scale_colour_manual("Legend", values = cbPalette) +
-  geom_vline(xintercept = c(4114.758, 4115.242, 4115.697), linetype = "dashed", lwd = 0.2, col = "black")
+  geom_vline(xintercept = c(q[2], q[3], q[4]), linetype = "dashed", lwd = 0.2, col = "black")
 
 ```
-
-
-

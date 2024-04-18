@@ -13,12 +13,12 @@ Importing the Data
 library(here)
 i_am("MultivariateMixtureModels.Rmd")
 # laptop data from csv
-Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+#Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
 
 #fishbowl data from ODS
-# library(readODS)
-# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+library(readODS)
+Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
 #removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
@@ -37,7 +37,7 @@ Filtering down to area of interest
 library(tidyr)
 library(plotly)
 interestArea <- T5 %>%
-  filter(x>4105 & x<4140 & y>4040 & y<4075)
+  filter(x>4100 & x<4150 & y>4025 & y<4075)
 
 ggplot(interestArea,aes(x,y)) + 
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
@@ -46,7 +46,7 @@ ggplot(interestArea,aes(x,y)) +
 ```
 ```{r}
 ggplot(interestArea,aes(x,y)) +
-  geom_point(size = 0.5) + coord_fixed()
+  geom_point(size = 0.5)
 ```
 
 
@@ -56,3 +56,61 @@ There are two small areas that could also be celestial sources (located above an
 I will be attempting to fit a multivariate mixture model for the entire area. The model will contain three(?) individual 2D Moffat distributions.
 
 The lowest and densest source has already been modelled individually and is denoted as POI2 in previous Rmarkdown files. 
+
+```{r}
+library(mixtools)
+
+set.seed(111)
+data1 <- cbind(rnorm(100, mean = 0, sd = 1), rnorm(100, mean = 0, sd = 1))
+data2 <- cbind(rnorm(100, mean = 5, sd = 1), rnorm(100, mean = 5, sd = 1))
+
+datafull <- rbind(data1, data2)
+plot(data1)
+plot(data2)
+plot(datafull)
+
+fit <- mvnormalmixEM(datafull, k = 2)
+
+names(fit)
+
+fit$lambda
+fit$mu
+fit$sigma
+
+fit$loglik
+#fit$posterior
+fit$all.loglik
+fit$restarts
+
+plot.mixEM(fit, whichplots = 2)
+plot.mixEM(fit, whichplots = 1)
+```
+From the results 
+
+lambda returns the weightings of each cluster
+
+The mean location of the first cluster (red) is (-0.012, -0.016) 
+The mean location of the second cluster (green) is (5.14, 5.02)
+
+Sigma returns the covariance matrixes
+
+```{r}
+trial <- mvnormalmixEM(interestArea, k = 3)
+```
+
+```{r}
+par(pty = "s")
+plot.mixEM(trial, whichplots = 2)
+```
+```{r}
+plot.mixEM(trial, whichplots = 1)
+trial$lambda
+trial$mu
+trial$sigma
+```
+
+```{r}
+library(mixAK)
+NMixEM(datafull, K = 2)
+```
+This returns the same values as the mixtools packages - however it displays it in a much neater way.
