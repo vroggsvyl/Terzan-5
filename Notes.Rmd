@@ -1,0 +1,30 @@
+---
+title: "Notes"
+output: html_document
+date: "2024-04-18"
+---
+
+Add information about what contour levels are representing
+
+simulating background noise - poisson generated noise
+modelling multiple close together << 
+
+Look at other thesis statements - Workshop with Ben sometime in the week starting 29/4
+Start thinking big picture
+Conclusions?
+
+uni-variate mm - problematic?
+Bi-variate mixture modelling
+packages for mixture modelling
+viable functions for density
+inverse cdf
+cdf
+
+have a look at packages for mixture modelling and what they require - expecially for bivariate mixture modelling
+
+Mixture Modelling R packages
+-mixtools - focuses on gaussian densities. Can't input custom
+-mclust (caused fishbowl computer to pause) 
+-mixAK - a lot of functions
+-flexmix - finite mixtures of regression models
+-gamlss and gamlss.mx
