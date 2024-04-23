@@ -116,3 +116,65 @@ library(mixAK)
 NMixEM(datafull, K = 2)
 ```
 This returns the same values as the mixtools packages - however it displays it in a much neater way.
+
+
+Mean Vector and Covariance Matrix
+```{r}
+set.seed(222)
+randomMatrix <- matrix(rnorm(10), nrow = 5)
+randomMatrix
+
+colMeans(randomMatrix)
+cov(randomMatrix)
+```
+```{r}
+#generate random cluster 2
+set.seed(224)
+randomMatrix2 <- matrix(rnorm(500, mean = 3, sd = 0.4), nrow = 250)
+mean2 <- colMeans(randomMatrix2)
+covmat2 <- cov(randomMatrix2)
+det2 <- det(covmat2)
+
+#generate random cluster 3
+set.seed(225)
+randomMatrix3 <- matrix(rnorm(500, mean = 1, sd = 0.2), nrow = 250)
+mean3 <- colMeans(randomMatrix3)
+covmat3 <- cov(randomMatrix3)
+det3 <- det(covmat3)
+
+#asign a random point somewhere in the region
+z <- matrix(c(3, 3.2), nrow = 1)
+```
+```{r}
+plot(randomMatrix2[,1], randomMatrix2[,2], xlim = c(-2, 5), ylim = c(-2, 5))#random cluster 2
+points(randomMatrix3[,1], randomMatrix3[,2], col = "red")#random cluster 3
+```
+
+```{r}
+randomClusters <- rbind(randomMatrix2, randomMatrix3)
+fit1 <- mvnormalmixEM(randomClusters, k = 2)
+fit1
+plot.mixEM(fit1, whichplots = 2)
+points(z[,1], z[,2], col = "blue") #random point - what's the density of this point if it exists in either cluster?
+fit2 <- NMixEM(randomClusters, K= 2)
+fit2
+```
+The parameters have been estimated using a spatial mixture model - I want to know associated density of a random point z. where z is (2,1)
+```{r}
+#Using the estimated parameters
+c1 <- exp(-0.5*(z-fit1$mu[[1]]) %*% solve(fit1$sigma[[1]]) %*% t(z-fit1$mu[[1]]))/(2*pi*sqrt(det(fit1$sigma[[1]])))
+c2 <- exp(-0.5*(z-fit1$mu[[2]]) %*% solve(fit1$sigma[[2]]) %*% t(z-fit1$mu[[2]]))/(2*pi*sqrt(det(fit1$sigma[[2]])))
+c1
+c2
+fit1$lambda[[1]]*c1+fit1$lambda[[2]]*c2
+```
+
+```{r}
+#Using the known data
+p1 <- (1/(2*pi*sqrt(det2)))*exp(-0.5*(z-mean2) %*% solve(covmat2) %*% t(z-mean2)) #component density if existing in cluster 2
+p2 <- (1/(2*pi*sqrt(det3)))*exp(-0.5*(z-mean3) %*% solve(covmat3) %*% t(z-mean3)) #component density if existing in cluster 3
+pz <- 0.5*p1 + 0.5*p2 #component density of existing in either cluster
+p1
+p2
+pz
+```
