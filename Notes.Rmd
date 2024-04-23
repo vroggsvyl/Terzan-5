@@ -28,3 +28,16 @@ Mixture Modelling R packages
 -mixAK - a lot of functions
 -flexmix - finite mixtures of regression models
 -gamlss and gamlss.mx
+
+
+rMOFFAT - qq plots
+simulated data
+
+another alternative
+use optim 
+parameter space becomes a bit crazy
+
+Start writing a first draft
+
+
+Next meeting - 1:30pm Friday

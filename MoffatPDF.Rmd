@@ -506,6 +506,11 @@ Accept the null hypothesis
 library(DescTools)
 AndersonDarlingTest(x = sortNTL2, null = VMCDF)
 ```
+```{r}
+library(goftest)
+ad.test(x = sortNTL2, null = "norm")
+```
+
 
 The next goal is to create some pp plots and qq plots for the 1D Moffat Function.
 in order to do that I require a function that calculates the Quantiles of the moffat function.
