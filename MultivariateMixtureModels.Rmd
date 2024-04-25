@@ -27,10 +27,10 @@ library(ggplot2)
 library(ggpointdensity)
 library(viridis)
 
-ggplot(T5,aes(x,y)) + 
-  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
-  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
-  coord_fixed()
+# ggplot(T5,aes(x,y)) + 
+#   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+#   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
+#   coord_fixed()
 ```
 Filtering down to area of interest
 ```{r}
@@ -145,6 +145,7 @@ det3 <- det(covmat3)
 #asign a random point somewhere in the region
 z <- matrix(c(3, 3.2), nrow = 1)
 ```
+
 ```{r}
 plot(randomMatrix2[,1], randomMatrix2[,2], xlim = c(-2, 5), ylim = c(-2, 5))#random cluster 2
 points(randomMatrix3[,1], randomMatrix3[,2], col = "red")#random cluster 3
@@ -209,9 +210,9 @@ MM2MOFFAT <- function(params, x, y){
   beta2 <- pmax(beta2, 1 + 1e-6)
   
   lambda1 <- pmin(lambda1, 1)
-  lambda1 <- pmax(lambda1, 0)
-  lambda2 <- pmin(lambda2, 1)
-  lambda2 <- pmax(lambda2, 1-lambda1)
+  lambda1 <- pmax(lambda1, 1 - lambda2)
+  lambda2 <- pmin(lambda2, 0 + lambda1)
+  lambda2 <- pmax(lambda2, 1 - lambda1)
   
   return(((lambda1*(beta1 - 1)/(pi*alpha1^2))*(1+((x-x1)^2+(y-y1)^2)/(alpha1^2))^(-beta1)) + 
   ((lambda2*(beta2 - 1)/(pi*alpha2^2))*(1+((x-x2)^2+(y-y2)^2)/(alpha2^2))^(-beta2)))
@@ -362,36 +363,78 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   alpha2 <- params[[9]]
   beta2 <- params[[10]]
   
-  #common expressions
-  u <- ((lambda1*(beta1 - 1)/(pi*alpha1^2))*(1+((x-x1)^2+(y-y1)^2)/(alpha1^2))^(-beta1)) + 
-  ((lambda2*(beta2 - 1)/(pi*alpha2^2))*(1+((x-x2)^2+(y-y2)^2)/(alpha2^2))^(-beta2))
-  v1 <- (1+((x-x1)^2+(y-y1)^2)/(alpha1^2))
-  v2 <- (1+((x-x2)^2+(y-y2)^2)/(alpha2^2))
+  #common terms
+  v1 <- (1+(((x-x1)^2+(y-y1)^2)/(alpha1^2)))
+  v2 <- (1+(((x-x2)^2+(y-y2)^2)/(alpha2^2)))
   c1 <- ((beta1 - 1)/(pi*alpha1^2))
   c2 <- ((beta2 - 1)/(pi*alpha2^2))
   s1 <- lambda1/(pi*alpha1^2)
   s2 <- lambda2/(pi*alpha2^2)
   
+  u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  
   #partial derivatives
-  dLamba1 <- -sum((c1*v1^-beta1)/u)
-  dLamba2 <- -sum((c2*v2^-beta2)/u)
+  dLambda1 <- -sum((c1*v1^(-beta1))/u)
+  dLambda2 <- -sum((c2*v2^(-beta2))/u)
   
-  dx1 <- -sum(((-lambda1*c1*beta1*v1^(-beta1-1))(-2*(x-x1)/alpha1^2))/u)
-  dx2 <- -sum(((-lambda2*c2*beta2*v2^(-beta2-1))(-2*(x-x2)/alpha2^2))/u)
-  dy1 <- -sum(((-lambda1*c1*beta1*v1^(-beta1-1))(-2*(y-y1)/alpha1^2))/u)
-  dy2 <- -sum(((-lambda2*c2*beta2*v2^(-beta2-1))(-2*(y-y2)/alpha2^2))/u)
+  dx1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((x-x1)/alpha1^2))/u)
+  dx2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((x-x2)/alpha2^2))/u)
+  dy1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((y-y1)/alpha1^2))/u)
+  dy2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((y-y2)/alpha2^2))/u)
   
-  dAlpha1 <- -sum((2*lambda1*c1)*((beta1*((x-x1)^2+(y-y1)^2))/(v1^(-beta1-1)) - (v1^-beta1)/alpha1)/u)
-  dAlpha2 <- -sum((2*lambda2*c2)*((beta2*((x-x2)^2+(y-y2)^2))/(v1^(-beta2-1)) - (v2^-beta2)/alpha2)/u)
+  dAlpha1 <- -sum((2*lambda1*c1)*((beta1*((x-x1)^2+(y-y1)^2)/((alpha1^3)*(v1^(-beta1-1)))) - ((v1^-beta1)/alpha1))/u)
+  dAlpha2 <- -sum((2*lambda2*c2)*((beta2*((x-x2)^2+(y-y2)^2)/((alpha2^3)*(v2^(-beta2-1)))) - ((v2^-beta2)/alpha2))/u)
   
-  dBeta1 <- -sum((s1*v1^-beta1*(1-beta1*ln(v1)+ln*(v1)))/u)
-  dBeta2 <- -sum((s2*v2^-beta2*(1-beta2*ln(v2)+ln*(v2)))/u)
+  dBeta1 <- -sum(((s1*v1^(-beta1))*(1-beta1*log(v1)+log(v1)))/u)
+  dBeta2 <- -sum(((s2*v2^(-beta2))*(1-beta2*log(v2)+log(v2)))/u)
   
-  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLamba2, dx2, dy2, dAlpha2, dBeta2))
+  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLambda2, dx2, dy2, dAlpha2, dBeta2))
 }
 ```
 
 ```{r}
+set.seed(111)
+data1 <- cbind(rnorm(100, mean = 0, sd = 1), rnorm(100, mean = 0, sd = 1))
+data2 <- cbind(rnorm(100, mean = 5, sd = 1), rnorm(100, mean = 5, sd = 1))
 
+datafull <- rbind(data1, data2)
+plot(data1)
+plot(data2)
+plot(datafull)
+
+initParams = c(x0 = 0, y0 = 0, alpha = 1, beta = 1)
+lowerBounds = c(0, 0, 1e-6, 1+1e-6)
+result <- optim(par = initParams, fn = NLL2D, gr = deriv2DNLL, x = data1[,1], y = data1[,2], method = "L-BFGS-B", lower = lowerBounds)
+opt <- result$par
+
+initParams2 = c(x0 = 5, y0 = 5, alpha = 1, beta = 1)
+lowerBounds = c(0, 0, 1e-6, 1+1e-6)
+result2 <- optim(par = initParams2, fn = NLL2D, gr = deriv2DNLL, x = data2[,1], y = data2[,2], method = "L-BFGS-B", lower = lowerBounds)
+opt2 <- result2$par
+```
+
+```{r}
+initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha = opt[[3]], beta = opt[[4]], lambda2 = 0.5, x2 = opt2[[1]], y2 = opt2[[2]], alpha = opt2[[3]], beta = opt2[[3]])
+lowerbounds = c(0, -100, -100, 1e-6, 1+1e-6, 0, -100, -100, 1e-6, 1+1e-6)
+upperbounds = c(1, 100, 100, Inf, Inf, 1, 100, 100, Inf, Inf)
+
+
+MMresult <- optimx(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+MMresult
+
+opt
+opt2
+MMresult$par
+```
+
+```{r}
+library(optimx)
+initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha = 0.683, beta = 1.9, lambda2 = 0.3, x2 = 4124, y2 = 4063, alpha = 0.5, beta = 1.9)
+lowerbounds = c(0, -100, -100, 1e-6, 1+1e-6, 0, -100, -100, 1e-6, 1+1e-6)
+upperbounds = c(1, 100, 100, Inf, Inf, 1, 100, 100, Inf, Inf)
+
+MMresult <- optimx(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult$par
 ```
 
