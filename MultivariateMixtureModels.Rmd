@@ -13,12 +13,12 @@ Importing the Data
 library(here)
 i_am("MultivariateMixtureModels.Rmd")
 # laptop data from csv
-Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+#Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
 
 #fishbowl data from ODS
-# library(readODS)
-# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+library(readODS)
+Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
 #removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
@@ -27,10 +27,10 @@ library(ggplot2)
 library(ggpointdensity)
 library(viridis)
 
-# ggplot(T5,aes(x,y)) + 
-#   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
-#   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
-#   coord_fixed()
+ggplot(T5,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
+  coord_fixed()
 ```
 Filtering down to area of interest
 ```{r}
@@ -67,6 +67,7 @@ data2 <- cbind(rnorm(100, mean = 5, sd = 1), rnorm(100, mean = 5, sd = 1))
 datafull <- rbind(data1, data2)
 plot(data1)
 plot(data2)
+par(pty = "s")
 plot(datafull)
 
 fit <- mvnormalmixEM(datafull, k = 2)
@@ -82,6 +83,7 @@ fit$loglik
 fit$all.loglik
 fit$restarts
 
+par(pty = "s")
 plot.mixEM(fit, whichplots = 2)
 plot.mixEM(fit, whichplots = 1)
 ```
@@ -102,21 +104,18 @@ trial <- mvnormalmixEM(interestArea, k = 3)
 par(pty = "s")
 plot.mixEM(trial, whichplots = 2)
 ```
-
 ```{r}
 plot.mixEM(trial, whichplots = 1)
 trial$lambda
 trial$mu
 trial$sigma
 ```
-- returns values of (4115.262, 4051.881), for the celestial source that has already been examined.
-Individually this returned (4115.261, 4051.904)
+
 ```{r}
 library(mixAK)
 NMixEM(datafull, K = 2)
 ```
 This returns the same values as the mixtools packages - however it displays it in a much neater way.
-
 
 Mean Vector and Covariance Matrix
 ```{r}
@@ -145,7 +144,6 @@ det3 <- det(covmat3)
 #asign a random point somewhere in the region
 z <- matrix(c(3, 3.2), nrow = 1)
 ```
-
 ```{r}
 plot(randomMatrix2[,1], randomMatrix2[,2], xlim = c(-2, 5), ylim = c(-2, 5))#random cluster 2
 points(randomMatrix3[,1], randomMatrix3[,2], col = "red")#random cluster 3
@@ -180,6 +178,60 @@ p2
 pz
 ```
 
+```{r}
+Mixed2MOFFAT <- function(parameters, x, y){
+  x01 <- parameters[[1]]
+  y01 <- parameters[[2]]
+  alpha1 <- parameters[[3]]
+  beta1 <- parameters[[4]]
+  x02 <- parameters[[5]]
+  y02 <- parameters[[6]]
+  alpha2 <- parameters[[7]]
+  beta2 <- parameters[[8]]
+  
+  
+}
+```
+
+
+
+
+
+```{r}
+norm1 <- c(mean = 0, sd = 1)
+norm2 <- c(mean = 5, sd = 1.3)
+norm3 <- c(mean = 7, sd = 0.7)
+
+ggplot() +
+  stat_function(fun = gaussian_density, n = 1000, args = list(parameters = norm1), aes(colour = "red")) +
+  stat_function(fun = gaussian_density, n = 1000, args = list(parameters = norm2), aes(colour = "blue")) +
+  stat_function(fun = gaussian_density, n = 1000, args = list(parameters = norm3), aes(colour = "green")) +
+  xlim(-3, 3)
+```
+
+
+I want to create a rmoffat function
+
+```{r}
+x <- runif(10, min = -3, max = 3)
+x
+mu <- 0
+sigma <- 1
+#xRange <- seq(-3, 3, length = 20)
+
+#(exp(-0.5*((xRange-mu)/sigma)^2))/(sigma*sqrt(2*pi))
+
+randNorm <- function(x, mu, sigma){
+  return((exp(-0.5*((x-mu)/sigma)^2))/(sigma*sqrt(2*pi)))
+}
+
+a <- randNorm(x, 0, 1)
+a
+qnorm(a, mean = 0, sd = 1)
+
+#(gamma(beta)/(alpha*sqrt(pi)*gamma(beta-0.5)))*(1+((x-mu)/alpha)^2)^-beta
+```
+
 
 Creating a mixture model that uses two 2D moffat functions. 
 $$ f(y_j) = \sum^{2}_{i=1} \lambda_i f_i(y_j)$$
@@ -187,6 +239,10 @@ Where $\lambda_i$ is the mixing proportion parameter and $f_i(y_j)$ are the comp
 $$f_i(y_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
 The mixture model in full:
 $$ f(y_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
+Let $ v_i = 1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2} $
+Let $ c_i = \frac{(\beta_i-1)}{\pi\alpha_{i}^{2}} $
+
+$$ f(y_j) = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
 
 ```{r}
 MM2MOFFAT <- function(params, x, y){
@@ -214,8 +270,13 @@ MM2MOFFAT <- function(params, x, y){
   lambda2 <- pmin(lambda2, 0 + lambda1)
   lambda2 <- pmax(lambda2, 1 - lambda1)
   
-  return(((lambda1*(beta1 - 1)/(pi*alpha1^2))*(1+((x-x1)^2+(y-y1)^2)/(alpha1^2))^(-beta1)) + 
-  ((lambda2*(beta2 - 1)/(pi*alpha2^2))*(1+((x-x2)^2+(y-y2)^2)/(alpha2^2))^(-beta2)))
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  return(lambda1*c1*v1^(-beta1) + 
+  lambda2*c2*v2^(-beta2))
 }
 
 library(pracma)
@@ -259,12 +320,17 @@ MM2MOFFATimage <- function(params, grid){
   beta2 <- pmax(beta2, 1 + 1e-6)
   
   lambda1 <- pmin(lambda1, 1)
-  lambda1 <- pmax(lambda1, 0)
-  lambda2 <- pmin(lambda2, 1)
-  lambda2 <- pmax(lambda2, 1-lambda1)
+  lambda1 <- pmax(lambda1, 1 - lambda2)
+  lambda2 <- pmin(lambda2, 0 + lambda1)
+  lambda2 <- pmax(lambda2, 1 - lambda1)
   
-  return(((lambda1*(beta1 - 1)/(pi*alpha1^2))*(1+((x-x1)^2+(y-y1)^2)/(alpha1^2))^(-beta1)) + 
-  ((lambda2*(beta2 - 1)/(pi*alpha2^2))*(1+((x-x2)^2+(y-y2)^2)/(alpha2^2))^(-beta2)))
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  return(lambda1*c1*v1^(-beta1) + 
+  lambda2*c2*v2^(-beta2))
 }
 
 xRange <- seq(-20, 20, length = 200)
@@ -281,6 +347,7 @@ image(xRange, yRange, z3Matrix)
 
 The Negative Log-Likelihood of the Mixture Model containing 2 Moffat component densities.
 $$-\sum^{n}_{j=1}\ln\left[\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}\right]$$
+$$-\sum^{n}_{j=1}\ln\left[\lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}\right]$$
 
 ```{r}
 NLLMM2MOFFAT <- function(params, x, y){
@@ -290,26 +357,21 @@ NLLMM2MOFFAT <- function(params, x, y){
 ```
 
 To find the partial derivatives of the Negative Log Likelihood
-Let $ u = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2} $
+Throughout the derivations the chain rule, quotient rule and product rule are utilised
+Chain Rule: $\frac{\delta}{\delta x} = \frac{\delta}{\delta y} \frac{\delta y}{\delta x} $
+Quotient Rule: $\frac{\delta}{\delta x} = \frac{ v \frac{\delta u}{\delta x} - { u \frac{\delta v}{\delta x}}}{v^2} $
+Product Rule:  $\frac{\delta (uv)}{\delta x} = u \frac{\delta v}{\delta x} + { v \frac{\delta u}{\delta x}}$
 
-
-First, the the partial derivative with respect to $\bar{x}_1$.
-$$-\sum^{n}_{j=1}\ln{u}$$
-Let $ v_i = 1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2} $
-
-Let $ c_i = \frac{(\beta_i-1)}{\pi\alpha_{i}^{2}} $
-
+Let:
 $$ u = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2} $$
 
-For $\frac{\delta}{\delta x_1}$
+For $\frac{\delta}{\delta x_1}$:
+
 $$\frac{\delta}{\delta x_1} = \frac{\delta}{\delta u} \frac{\delta u}{\delta v_1} \frac{\delta v_1}{\delta x_1}$$
 $$\frac{\delta}{\delta u} = -\sum\frac{1}{u}$$
 $$\frac{\delta u}{\delta v_1} = - \lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)}$$
 $$\frac{\delta v_1}{\delta x_1} = \frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}}$$
 $$\frac{\delta}{\delta x_1} = -\sum\frac{1}{u} (-\lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)})(\frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}})$$
-In full
-$$\frac{\delta}{\delta x_1} = -\sum\frac{(\frac{\lambda_1(\beta_1-1)}{\pi\alpha_{1}^{2}} \beta_1 \left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-(\beta_1 + 1)})(\frac{2(x_j - \bar{x}_1)}{\alpha_{1}^{2}})}
-{\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}}$$
 
 A similar method is used to find the partial derivative with respect to $\bar{x}_2$, $\bar{y}_1$ and $\bar{y}_2$.
 
@@ -317,36 +379,43 @@ $$\frac{\delta}{\delta x_2} = -\sum\frac{1}{u} (-\lambda_2 c_2 \beta_2 v_{2}^{-(
 $$\frac{\delta}{\delta x_1} = -\sum\frac{1}{u} (-\lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)})(\frac{-2(y_j - \bar{y}_1)}{\alpha_{1}^{2}})$$
 
 $$\frac{\delta}{\delta x_2} = -\sum\frac{1}{u} (-\lambda_2 c_2 \beta_2 v_{2}^{-(\beta_2 + 1)})(\frac{-2(y_j - \bar{y}_2)}{\alpha_{2}^{2}})$$
-For the partial derivative with respect to $\lambda_1$
+For the partial derivative with respect to $\lambda_1$.
 $$\frac{\delta u}{\delta \lambda_1} = c_1  v_{1}^{-\beta_1}$$
 $$\frac{\delta}{\delta \lambda_1} = -\sum\frac{c_1 v_{1}^{-\beta_1}}{u}$$
 Similarly for $\lambda_2$
 $$\frac{\delta}{\delta \lambda_2} = -\sum\frac{c_2 v_{2}^{-\beta_2}}{u}$$
 
-For the partial derivative with respect to $\alpha_1$, the product rule is applied
-Let $w = \frac{\lambda_1(\beta_1 -1)}{\pi}\alpha_{1}^{-2}$
-Let $d = v_1^{-\beta_1}$
+For the partial derivative with respect to $\alpha_1$
+Let $w_1 = \frac{\lambda_1(\beta_1 -1)}{\pi}\alpha_{1}^{-2}$
+Let $d_1 = v_1^{-\beta_1}$
 So $u = wd$
-$\frac{\delta u}{\delta \alpha_1} = wd' + w'd$
+Apply the product rule.
 
-$w' = -2\frac{\lambda_1(\beta_1 - 1)}{\pi}\alpha_{1}^{-3}$
+$w_1' = -2\frac{\lambda_1(\beta_1 - 1)}{\pi}\alpha_{1}^{-3}$
+
 To find d' the quotient and chain rules are applied
-$d' = \frac{2\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{\left[1+\frac{(x-x_1)^2 + (y-y_1))^2}{\alpha_{1}^{2}}\right]^{-(\beta + 1)}\alpha_{1}^{3}}$
+$d_1' = \frac{2 \beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1^{-\beta_1 +1}\alpha_1^3}$
 
-$$\frac{\delta u}{\delta \alpha_1} = \frac{\lambda_1(\beta_1 -1)}{\pi\alpha_{1}^{2}} \frac{2\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{\left[1+\frac{(x-x_1)^2 + (y-y_1))^2}{\alpha_{1}^{2}}\right]^{-(\beta + 1)}\alpha_{1}^{3}} - 2\frac{\lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{3}} (1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2})^{-\beta_1}$$
-$$\frac{\delta}{\delta \alpha_1} = -\sum \frac{\frac{2\lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{2}}\left[\frac{\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{\left[1+\frac{(x-x_1)^2 + (y-y_1))^2}{\alpha_{1}^{2}}\right]^{-(\beta + 1)}\alpha_{1}^{3}} - \frac{1}{\alpha_1}(1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2})^{-\beta_1}\right]}{\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}}$$
+
+$$\frac{\delta u}{\delta \alpha_1} = \frac{\lambda_1(\beta_1 -1)}{\pi\alpha_{1}^{2}} \frac{2 \beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1^{(\beta_1 +1)}\alpha_1^3} - \frac{2 \lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{3}} v_1^{-\beta_1}$$
+This can be simplified by factoring out the common term $\frac{2\lambda_1(\beta_1 - 1)}{\pi \alpha_1^3 v_1^\beta}$
+$$\frac{\delta u}{\delta \alpha_1} = \frac{2\lambda_1(\beta_1 - 1)}{\pi \alpha_1^3 v_1^\beta}(\frac{\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1 \alpha_1^2} - 1)$$
+Resulting in
+$$\frac{\delta}{\delta \alpha_1} = -\sum \frac {\frac{2\lambda_1(\beta_1 - 1)}{\pi \alpha_1^3 v_1^\beta}(\frac{\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1 \alpha_1^2} - 1)}{u}$$
+
 Similarly for $\alpha_2$
-$$\frac{\delta}{\delta \alpha_2} = -\sum \frac{\frac{2\lambda_2(\beta_2 - 1)}{\pi\alpha_{2}^{2}}\left[\frac{\beta_2\left[(x-\bar{x}_2)^{2}+(y-\bar{y}_2)^{2}\right]}{\left[1+\frac{(x-\bar{x}_2)^2 + (y-\bar{y}_2))^2}{\alpha_{2}^{2}}\right]^{-(\beta_2 + 1)}\alpha_{2}^{3}} - \frac{1}{\alpha_2}(1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2})^{-\beta_2}\right]}{\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}}$$
+$$\frac{\delta}{\delta \alpha_2} = -\sum \frac {\frac{2\lambda_2(\beta_2 - 1)}{\pi \alpha_2^3 v_2^\beta_2}(\frac{\beta_2\left[(x-x_2)^{2}+(y-y_2)^{2}\right]}{v_2\alpha_2^2} - 1)}{u}$$
 
 For the partial derivative with respect to $\beta_1$.
-Let $s_1 = \frac{\lambda_1}{\pi\alpha_{1}^{2}}$
-$u = s\beta_1 v_{1}^{-\beta_1} - sv_{1}^{-\beta_1}$
+Rearrange the initial equation and
+Let $s_i = \frac{\lambda_i}{\pi\alpha_{i}^{2}}$
+
+$u = sv_{1}^{-\beta_1}(\beta_1 - 1)$
 
 $$\frac{\delta u}{\delta \beta_1} = s_1 v_{1}^{-\beta_1}(1-\beta_1\ln(v_1) + \ln(v_1))$$
-$$\frac{\delta}{\delta \beta_1} = -\sum \frac{ sv_{1}^{-\beta_1}(1-\beta_1\ln(v_1) + \ln(v_1))}
-{u}$$
+$$\frac{\delta}{\delta \beta_1} = -\sum \frac{ s_1v_{1}^{-\beta_1}(1-\beta_1\ln(v_1) + \ln(v_1))}{u}$$
 Similarly for $\beta_2$
-$$\frac{\delta u}{\delta \beta_2} = s_2 v_{2}^{-\beta_2}(1-\beta_2\ln(v_2) + \ln(v_2))$$
+$$\frac{\delta}{\delta \beta_2} = -\sum \frac{ s_2v_{2}^{-\beta_2}(1-\beta_2\ln(v_2) + \ln(v_2))}{u}$$
 
 ```{r}
 derivNLLMM2MOFFAT <- function(params, x, y){
@@ -364,10 +433,11 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   beta2 <- params[[10]]
   
   #common terms
-  v1 <- (1+(((x-x1)^2+(y-y1)^2)/(alpha1^2)))
-  v2 <- (1+(((x-x2)^2+(y-y2)^2)/(alpha2^2)))
-  c1 <- ((beta1 - 1)/(pi*alpha1^2))
-  c2 <- ((beta2 - 1)/(pi*alpha2^2))
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
   s1 <- lambda1/(pi*alpha1^2)
   s2 <- lambda2/(pi*alpha2^2)
   
@@ -382,8 +452,8 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   dy1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((y-y1)/alpha1^2))/u)
   dy2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((y-y2)/alpha2^2))/u)
   
-  dAlpha1 <- -sum((2*lambda1*c1)*((beta1*((x-x1)^2+(y-y1)^2)/((alpha1^3)*(v1^(-beta1-1)))) - ((v1^-beta1)/alpha1))/u)
-  dAlpha2 <- -sum((2*lambda2*c2)*((beta2*((x-x2)^2+(y-y2)^2)/((alpha2^3)*(v2^(-beta2-1)))) - ((v2^-beta2)/alpha2))/u)
+  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
   
   dBeta1 <- -sum(((s1*v1^(-beta1))*(1-beta1*log(v1)+log(v1)))/u)
   dBeta2 <- -sum(((s2*v2^(-beta2))*(1-beta2*log(v2)+log(v2)))/u)
