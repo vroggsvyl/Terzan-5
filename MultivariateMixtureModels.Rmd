@@ -264,17 +264,15 @@ MM2MOFFAT <- function(params, x, y){
   beta2 <- pmax(beta2, 1 + 1e-6)
   
   lambda1 <- pmin(lambda1, 1)
-  lambda1 <- pmax(lambda1, 1 - lambda2)
-  lambda2 <- pmin(lambda2, 0 + lambda1)
-  lambda2 <- pmax(lambda2, 1 - lambda1)
+  lambda1 <- pmax(lambda1, 0)
+  lambda2 = 1 - lambda1
   
   c1 <- (beta1 - 1)/(pi*alpha1^2)
   c2 <- (beta2 - 1)/(pi*alpha2^2)
   v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
   v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
   
-  return(lambda1*c1*v1^(-beta1) + 
-  lambda2*c2*v2^(-beta2))
+  return(lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2))
 }
 
 library(pracma)
@@ -430,6 +428,8 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   alpha2 <- params[[9]]
   beta2 <- params[[10]]
   
+  lambda2 = 1 - lambda1
+  
   #common terms
   c1 <- (beta1 - 1)/(pi*alpha1^2)
   c2 <- (beta2 - 1)/(pi*alpha2^2)
@@ -442,19 +442,31 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
   
   #partial derivatives
-  dLambda1 <- -sum((c1*v1^(-beta1))/u)
-  dLambda2 <- -sum((c2*v2^(-beta2))/u)
+  dLambda1 <- -sum(c1/(u*v1^beta1))
+  dLambda2 <- -sum(c2/(u*v2^beta2))
   
-  dx1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((x-x1)/alpha1^2))/u)
-  dx2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((x-x2)/alpha2^2))/u)
-  dy1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((y-y1)/alpha1^2))/u)
-  dy2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((y-y2)/alpha2^2))/u)
+  dx1 <- -sum((2*beta1*(x-x1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dx2 <- -sum((2*beta2*(x-x2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  dy1 <- -sum((2*beta1*(y-y1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dy2 <- -sum((2*beta2*(y-y2))/(u*(alpha2^2)*(v2^(beta2+1))))
   
-  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
-  dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
   
-  dBeta1 <- -sum(((s1*v1^(-beta1)*log(v1))*(1-beta1))/u)
-  dBeta2 <- -sum(((s2*v2^(-beta2)*log(v2))*(1-beta2))/u)
+  # dx1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((x-x1)/alpha1^2))/u)
+  # dx2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((x-x2)/alpha2^2))/u)
+  # dy1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((y-y1)/alpha1^2))/u)
+  # dy2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((y-y2)/alpha2^2))/u)
+  
+  dAlpha1 <- -sum((2*(beta1^2 - 1))/(u*pi*(v1^beta1)*(alpha1^3)))
+  dAlpha2 <- -sum((2*(beta2^2 - 1))/(u*pi*(v2^beta2)*(alpha2^3)))
+  
+  # dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  # dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  
+  dBeta1 <- -sum((s1*(1+log(v1)-beta1*log(v1)))/(u*v1^beta1))
+  dBeta2 <- -sum((s2*(1+log(v2)-beta2*log(v2)))/(u*v2^beta2))
+  
+  # dBeta1 <- -sum(((s1*v1^(-beta1)*log(v1))*(1-beta1))/u)
+  # dBeta2 <- -sum(((s2*v2^(-beta2)*log(v2))*(1-beta2))/u)
   
   return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLambda2, dx2, dy2, dAlpha2, dBeta2))
 }
@@ -484,6 +496,9 @@ opt2 <- result2$par
 ```{r}
 library(optimx)
 initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha = opt[[3]], beta = opt[[4]], lambda2 = 0.5, x2 = opt2[[1]], y2 = opt2[[2]], alpha = opt2[[3]], beta = opt2[[3]])
+
+initialParams2 <- c(lambda1 = 0.5, x1 = 0, y1 = 0, alpha = 1.1, beta = 1.8, lambda2 = 0.5, x2 = 5, y2 = 5, alpha = 1.2, beta = 2)
+
 lowerbounds = c(0, -100, -100, 1e-6, 1+1e-6, 0, -100, -100, 1e-6, 1+1e-6)
 upperbounds = c(1, 100, 100, Inf, Inf, 1, 100, 100, Inf, Inf)
 
