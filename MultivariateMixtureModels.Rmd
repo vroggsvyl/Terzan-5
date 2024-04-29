@@ -251,11 +251,11 @@ MM2MOFFAT <- function(params, x, y){
   alpha1 <- params[[4]]
   beta1 <- params[[5]]
   #component density 2
-  lambda2 <- params[[6]]
-  x2 <- params[[7]]
-  y2 <- params[[8]]
-  alpha2 <- params[[9]]
-  beta2 <- params[[10]]
+  #lambda2 <- params[[6]]
+  x2 <- params[[6]]
+  y2 <- params[[7]]
+  alpha2 <- params[[8]]
+  beta2 <- params[[9]]
   
   #restrictions
   alpha1 <- pmax(alpha1, 1e-6)
@@ -277,22 +277,22 @@ MM2MOFFAT <- function(params, x, y){
 
 library(pracma)
 #test
-testParams <- c(lambda1 = 0.5, x1 = 1, y1 = 4, alpha1 = 0.4, beta1 = 2, lambda2 = 0.5, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
+testParams <- c(lambda1 = 0.5, x1 = 1, y1 = 4, alpha1 = 0.4, beta1 = 2, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
 MixtureIntegral <- integral2(MM2MOFFAT, xmin = -40, xmax = 40, ymin = -40, ymax = 40, params = testParams)[[1]]
 MixtureIntegral
 #test2
-testParams2 <- c(lambda1 = 0.7, x1 = 40, y1 = 33, alpha1 = 1.2, beta1 = 1.7, lambda2 = 0.3, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
+testParams2 <- c(lambda1 = 0.7, x1 = 40, y1 = 33, alpha1 = 1.2, beta1 = 1.7, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
 MixtureIntegral2 <- integral2(MM2MOFFAT, xmin = -100, xmax = 100, ymin = -100, ymax = 100, params = testParams2)[[1]]
 MixtureIntegral2
 #test3
-testParams3 <- c(lambda1 = 0.55, x1 = 0, y1 = 0, alpha1 = 1.2, beta1 = 2, lambda2 = 0.45, x2 = 2, y2 = 2, alpha2 = 1.2, beta2 = 2)
+testParams3 <- c(lambda1 = 0.55, x1 = 0, y1 = 0, alpha1 = 1.2, beta1 = 2, x2 = 2, y2 = 2, alpha2 = 1.2, beta2 = 2)
 MixtureIntegral3 <- integral2(MM2MOFFAT, xmin = -50, xmax = 50, ymin = -50, ymax = 50, params = testParams3)[[1]]
 MixtureIntegral3
 ```
 When integrating the function over the entire range it should equate to 1 - this is tricky to evaluate due to how R handles integration.
 
 ```{r}
-MM2MOFFATimage <- function(params, grid){
+MM2MOFFATimage <- function(grid, params){
   x <- grid[[1]]
   y <- grid[[2]]
   
@@ -340,6 +340,8 @@ z3 <- MM2MOFFATimage(params = testParams3, grid)
 z3Matrix <- matrix(z3, nrow = length(xRange), ncol = length(yRange))
 image(xRange, yRange, z3Matrix)
 ```
+
+
 
 The Negative Log-Likelihood of the Mixture Model containing 2 Moffat component densities.
 $$-\sum^{n}_{j=1}\ln\left[\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}\right]$$
@@ -400,7 +402,7 @@ Resulting in
 $$\frac{\delta}{\delta \alpha_1} = -\sum \frac {\frac{2\lambda_1(\beta_1 - 1)}{\pi \alpha_1^3 v_1^\beta}(\frac{\beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1 \alpha_1^2} - 1)}{u}$$
 
 Similarly for $\alpha_2$
-$$\frac{\delta}{\delta \alpha_2} = -\sum \frac {\frac{2\lambda_2(\beta_2 - 1)}{\pi \alpha_2^3 v_2^\beta_2}(\frac{\beta_2\left[(x-x_2)^{2}+(y-y_2)^{2}\right]}{v_2\alpha_2^2} - 1)}{u}$$
+$$\frac{\delta}{\delta \alpha_2} = -\sum \frac {\frac{2\lambda_2(\beta_2 - 1)}{\pi \alpha_2^3 v_2^\beta_2}(\frac{\beta_2\left[(x-x_2)^{2}+(y-y_2)^{2}\right]}{v_2 \alpha_2^2} - 1)}{u}$$
 
 For the partial derivative with respect to $\beta_1$.
 Rearrange the initial equation and
@@ -422,11 +424,11 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   alpha1 <- params[[4]]
   beta1 <- params[[5]]
   #component density 2
-  lambda2 <- params[[6]]
-  x2 <- params[[7]]
-  y2 <- params[[8]]
-  alpha2 <- params[[9]]
-  beta2 <- params[[10]]
+  # lambda2 <- params[[6]]
+  x2 <- params[[6]]
+  y2 <- params[[7]]
+  alpha2 <- params[[8]]
+  beta2 <- params[[9]]
   
   lambda2 = 1 - lambda1
   
@@ -443,7 +445,7 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   
   #partial derivatives
   dLambda1 <- -sum(c1/(u*v1^beta1))
-  dLambda2 <- -sum(c2/(u*v2^beta2))
+  # dLambda2 <- -sum(c2/(u*v2^beta2))
   
   dx1 <- -sum((2*beta1*(x-x1))/(u*(alpha1^2)*(v1^(beta1+1))))
   dx2 <- -sum((2*beta2*(x-x2))/(u*(alpha2^2)*(v2^(beta2+1))))
@@ -468,14 +470,17 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   # dBeta1 <- -sum(((s1*v1^(-beta1)*log(v1))*(1-beta1))/u)
   # dBeta2 <- -sum(((s2*v2^(-beta2)*log(v2))*(1-beta2))/u)
   
-  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLambda2, dx2, dy2, dAlpha2, dBeta2))
+  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dx2, dy2, dAlpha2, dBeta2))
 }
 ```
 
+
+
+
 ```{r}
 set.seed(111)
-data1 <- cbind(rnorm(100, mean = 0, sd = 1), rnorm(100, mean = 0, sd = 1))
-data2 <- cbind(rnorm(100, mean = 5, sd = 1), rnorm(100, mean = 5, sd = 1))
+data1 <- cbind(rnorm(300, mean = 0, sd = 0.4), rnorm(300, mean = 0, sd = 0.4))
+data2 <- cbind(rnorm(300, mean = 5, sd = 0.4), rnorm(300, mean = 5, sd = 0.4))
 
 datafull <- rbind(data1, data2)
 plot(data1)
@@ -495,12 +500,12 @@ opt2 <- result2$par
 
 ```{r}
 library(optimx)
-initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha = opt[[3]], beta = opt[[4]], lambda2 = 0.5, x2 = opt2[[1]], y2 = opt2[[2]], alpha = opt2[[3]], beta = opt2[[3]])
+initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha = opt[[3]], beta = opt[[4]], x2 = opt2[[1]], y2 = opt2[[2]], alpha = opt2[[3]], beta = opt2[[3]])
 
-initialParams2 <- c(lambda1 = 0.5, x1 = 0, y1 = 0, alpha = 1.1, beta = 1.8, lambda2 = 0.5, x2 = 5, y2 = 5, alpha = 1.2, beta = 2)
+# initialParams2 <- c(lambda1 = 0.5, x1 = 0, y1 = 0, alpha = 1.1, beta = 1.8, lambda2 = 0.5, x2 = 5, y2 = 5, alpha = 1.2, beta = 2)
 
-lowerbounds = c(0, -100, -100, 1e-6, 1+1e-6, 0, -100, -100, 1e-6, 1+1e-6)
-upperbounds = c(1, 100, 100, Inf, Inf, 1, 100, 100, Inf, Inf)
+lowerbounds = c(1e-6, -100, -100, 1e-6, 1+1e-6, -100, -100, 1e-6, 1+1e-6)
+upperbounds = c(1, 100, 100, Inf, Inf, 100, 100, Inf, Inf)
 
 
 MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
@@ -508,8 +513,50 @@ MMresult
 
 opt
 opt2
-MMresult$par
+out <- MMresult$par
+out
 ```
+```{r}
+xRange <- seq(-20, 20, length = 100)
+yRange <- seq(-20, 20, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 10) +
+  coord_fixed()
+```
+
+```{r}
+dataFull <- as.data.frame(datafull)
+colnames(dataFull) = c("x", "y")
+
+randomModel <- ggplot(dataFull, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(2, 4, 8, 16)) +
+  coord_fixed()
+
+randomModel2 <- ggplot(dataFull, aes(x = x, y = y)) +
+   geom_point(size = 0.2)
+
+
+randomModel
+contours
+
+randomModel2
+
+```
+```{r}
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- randomModel2 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+MMcombined
+```
+
 
 ```{r}
 initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha = 0.683, beta = 1.9, lambda2 = 0.3, x2 = 4124, y2 = 4063, alpha = 0.5, beta = 1.9)
