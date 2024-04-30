@@ -13,12 +13,12 @@ Importing the Data
 library(here)
 i_am("MultivariateMixtureModels.Rmd")
 # laptop data from csv
-#Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
 
 #fishbowl data from ODS
-library(readODS)
-Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+# library(readODS)
+# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
 #removing extraneous columns
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
@@ -44,6 +44,29 @@ ggplot(interestArea,aes(x,y)) +
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
   coord_fixed()
 ```
+
+```{r}
+interestArea2 <- T5 %>%
+  filter(x>4105 & x<4135 & y>4160 & y<4190)
+
+ggplot(interestArea2,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
+  coord_fixed()
+
+```
+```{r}
+interestArea2S1 <- interestArea2 %>%
+  filter(x>4110 & x<4120 & y>4177 & y<4187)
+
+interestArea2S2 <- interestArea2 %>%
+  filter(x>4124 & x<4134 & y>4173 & y<4183)
+
+nrow(interestArea2S1)
+nrow(interestArea2S2)
+```
+
+
 ```{r}
 ggplot(interestArea,aes(x,y)) +
   geom_point(size = 0.5)
@@ -430,7 +453,7 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   alpha2 <- params[[8]]
   beta2 <- params[[9]]
   
-  lambda2 = 1 - lambda1
+  lambda2 <-  1 - lambda1
   
   #common terms
   c1 <- (beta1 - 1)/(pi*alpha1^2)
@@ -557,7 +580,7 @@ MMcombined <- randomModel2 + geom_path(data = MMcontourData, aes(x = x, y = y, g
 MMcombined
 ```
 
-
+#On the Data
 ```{r}
 initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha = 0.683, beta = 1.9, x2 = 4124, y2 = 4063, alpha = 0.5, beta = 1.9)
 lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
@@ -597,5 +620,47 @@ interestAreaModel
 ```{r}
 MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
 MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+MMcombined
+```
+
+Interest Area 2 - 2 celestial sources
+```{r}
+initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S1$x), y1 = mean(interestArea2S1$y), alpha = 0.7, beta = 1.9, x2 = mean(interestArea2S2$x), y2 = mean(interestArea2S2$y), alpha = 0.5, beta = 1.9)
+lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6, 3900, 3900, 1e-6, 1+1e-6)
+upperbounds = c(1, 4400, 4400, Inf, Inf, 4400, 4400, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult
+out <- MMresult$par
+```
+```{r}
+xRange <- seq(4105, 4135, length = 100)
+yRange <- seq(4160, 4190, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 10) +
+  coord_fixed()
+
+contours
+```
+```{r}
+interestArea2Model <- ggplot(interestArea2, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestArea2Model
+```
+```{r}
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestArea2Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 MMcombined
 ```
