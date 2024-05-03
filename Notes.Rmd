@@ -7,11 +7,6 @@ date: "2024-04-18"
 Add information about what contour levels are representing
 
 simulating background noise - poisson generated noise
-modelling multiple close together << 
-
-Look at other thesis statements - Workshop with Ben sometime in the week starting 29/4
-Start thinking big picture
-Conclusions?
 
 uni-variate mm - problematic?
 Bi-variate mixture modelling
@@ -20,7 +15,7 @@ viable functions for density
 inverse cdf
 cdf
 
-have a look at packages for mixture modelling and what they require - expecially for bivariate mixture modelling
+have a look at packages for mixture modelling and what they require - especially for bivariate mixture modelling
 
 Mixture Modelling R packages
 -mixtools - focuses on gaussian densities. Can't input custom
@@ -41,10 +36,8 @@ Start writing a first draft
 Draft by Saturday May 17th
 
 
-
 Inverse of cdf
 not pdf
 accept reject - rejection sampling
 
-
-Next meeting - 1:30pm Friday
+next week - 9/05 meet on campus

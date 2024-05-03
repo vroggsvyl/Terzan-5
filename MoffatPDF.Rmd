@@ -60,11 +60,12 @@ POI2 <- T5 %>%
 
 Viewing one of those Points of Interest
 ```{r}
-ggplot(POI1, aes(x,y)) +
+modelPOI1 <- ggplot(POI1, aes(x,y)) +
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
   coord_fixed()
-ggplot(POI2, aes(x,y)) +
+
+modelPOI2 <- ggplot(POI2, aes(x,y)) +
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
   coord_fixed()
@@ -94,6 +95,16 @@ line2.5 <- POI2 %>%
   filter(y>4050.5 & y< 4051)
 ```
 
+```{r}
+modelPOI2 + geom_hline(yintercept = 4050.5) + geom_hline(yintercept = 4051.5)
+```
+```{r}
+histLine2 <- ggplot(line2) +
+  geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5])
+histLine2
+```
+
+
 Choosing one of my slices, I am to fit a distribution to it to be able to predict if the observations belong to the celestial source or not. 
 Fitting to a Normal Distribution
 ```{r}
@@ -110,7 +121,6 @@ gaussian_density <- function(parameters, x) {
 # Define the negative log-likelihood function for Gaussian distribution
 negative_log_likelihood <- function(parameters, x) {
   predicted_density <- gaussian_density(parameters, x)
-  
   return(-sum(log(predicted_density)))
 }
 
@@ -118,18 +128,21 @@ initial_guess <- c(mean = 4115, sd = 1)
 # Optimize the negative log-likelihood function
 result <- optim(par = initial_guess, fn = negative_log_likelihood, x = xl2, method = "Nelder-Mead")
 
+result
+
 # Extract the optimized parameters
 optimized_parameters <- result$par
 optimized_parameters
 ```
 ```{r}
 optimParameters2N <- gaussian_density(optimized_parameters, xl2)
-## plotting layers in ggplot
-ggplot(line2) +
-  geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5]) +
+
+histWithNormL2 <- histLine2 +
   stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian density"), linewidth=1.2) +
   ylab("p(x)") + 
   scale_colour_manual("Legend", values = cbPalette)
+
+histWithNormL2
 ```
 It is clear that the Normal distribution doesn't provide an accurate model of the data.
 
