@@ -368,6 +368,8 @@ image(xRange, yRange, z3Matrix)
 
 The Negative Log-Likelihood of the Mixture Model containing 2 Moffat component densities.
 $$-\sum^{n}_{j=1}\ln\left[\lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}\right]$$
+
+
 $$-\sum^{n}_{j=1}\ln\left[\lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}\right]$$
 
 ```{r}
@@ -451,6 +453,79 @@ $$\frac{\partial}{\partial \beta_1} = -\sum \frac{s_1 v_1^{-\beta_1} (1 + \ln(v_
 Similarly for $\beta_2$
 $$\frac{\partial}{\partial \beta_2} = -\sum \frac{s_2 v_2^{-\beta_2} (1 + \ln(v_2) - \beta_2 \ln(v_2))}{u}$$
 
+
+```{r}
+myenv <- new.env()
+assign("lambda1", 0.5, envir = myenv)
+assign("beta1", 2, envir = myenv)
+assign("alpha1", 1, envir = myenv)
+assign("x1", 40, envir = myenv)
+assign("y1", 20, envir = myenv)
+assign("lambda2", 0.5, envir = myenv)
+assign("beta2", 1.8, envir = myenv)
+assign("alpha2", 1.2, envir = myenv)
+assign("x2", 30, envir = myenv)
+assign("y2", 30, envir = myenv)
+assign("x", 35, envir = myenv)
+assign("y", 25, envir = myenv)
+
+f <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  predDensity <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  return(-sum(log(predDensity)))
+}
+
+f(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)
+
+outputnumderiv <- numericDeriv(quote(f(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)), c("lambda1", "x1", "y1", "alpha1", "beta1", "lambda2", "x2", "y2", "alpha2", "beta2"), myenv)
+```
+```{r}
+derivf <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  s1 <- lambda1/(pi*alpha1^2)
+  s2 <- lambda2/(pi*alpha2^2)
+  
+  u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  
+  #partial derivatives
+  dLambda1 <- -sum(c1/(u*v1^beta1))
+  dLambda2 <- -sum(c2/(u*v2^beta2))
+  
+  dx1 <- -sum((2*lambda1*c1*beta1*(x-x1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dx2 <- -sum((2*lambda2*c2*beta2*(x-x2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  dy1 <- -sum((2*lambda1*c1*beta1*(y-y1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dy2 <- -sum((2*lambda2*c2*beta2*(y-y2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  
+  # dAlpha1 <- -sum((2*lambda1*(beta1^2 - 1))/(u*pi*(v1^beta1)*(alpha1^3)))
+  # dAlpha2 <- -sum((2*lambda2*(beta2^2 - 1))/(u*pi*(v2^beta2)*(alpha2^3)))
+  
+  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha2 <- -sum(((2*lambda2*(beta2 - 1)/(pi*alpha2^3*v2^beta2))*((beta2*((x-x2)^2 + (y-y2)^2)/(v2*alpha2^2))-1))/u)
+  
+  dBeta1 <- -sum((s1*(1+log(v1)-beta1*log(v1)))/(u*v1^beta1))
+  dBeta2 <- -sum((s2*(1+log(v2)-beta2*log(v2)))/(u*v2^beta2))
+  
+  
+  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLambda2, dx2, dy2, dAlpha2, dBeta2))
+}
+
+outputderivf <- derivf(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)
+```
+```{r}
+outputnumderiv
+outputderivf
+```
+
 ```{r}
 derivNLLMM2MOFFAT <- function(params, x, y){
   #component density 1
@@ -494,11 +569,8 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   # dy1 <- -sum(((2*lambda1*c1*beta1*v1^(-beta1-1))*((y-y1)/alpha1^2))/u)
   # dy2 <- -sum(((2*lambda2*c2*beta2*v2^(-beta2-1))*((y-y2)/alpha2^2))/u)
   
-  dAlpha1 <- -sum((2*lambda1*(beta1^2 - 1))/(u*pi*(v1^beta1)*(alpha1^3)))
-  dAlpha2 <- -sum((2*lambda2*(beta2^2 - 1))/(u*pi*(v2^beta2)*(alpha2^3)))
-  
-  # dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
-  # dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
   
   dBeta1 <- -sum((s1*(1+log(v1)-beta1*log(v1)))/(u*v1^beta1))
   dBeta2 <- -sum((s2*(1+log(v2)-beta2*log(v2)))/(u*v2^beta2))
@@ -544,7 +616,7 @@ lowerbounds = c(1e-6, -100, -100, 1e-6, 1+1e-6, -100, -100, 1e-6, 1+1e-6)
 upperbounds = c(1, 100, 100, Inf, Inf, 100, 100, Inf, Inf)
 
 
-MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "CG")
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
 MMresult
 
 opt
@@ -587,6 +659,7 @@ contours
 randomModel2
 
 ```
+
 ```{r}
 MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
 MMcombined <- randomModel2 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) + coord_fixed()
@@ -599,7 +672,7 @@ initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, 
 lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
 upperbounds = c(1, 5000, 5000, Inf, Inf, 5000, 5000, Inf, Inf)
 
-MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "CG")
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", upper = upperbounds, lower = lowerbounds)
 
 MMresult
 out <- MMresult$par

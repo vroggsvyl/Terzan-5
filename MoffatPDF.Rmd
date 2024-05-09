@@ -518,6 +518,7 @@ Accept the null hypothesis
 ```{r}
 library(DescTools)
 AndersonDarlingTest(x = sortNTL2, null = VMCDF)
+AndersonDarlingTest(x = sortNTL2, null = "pnorm")
 ```
 ```{r}
 library(goftest)
@@ -562,6 +563,13 @@ data.frame(probs, quantiles)
 quantile(sortNTL2) #data
 quantile(quantiles) #theoretical values
 ```
+```{r}
+quant <- qnorm(p = probs, mean = optimized_parameters[1], sd = optimized_parameters[2])
+qqplot(quant, sortNTL2, xlab = "Normal Distribution Theoretical Quantiles", ylab = "Data Quantiles")
+abline(a = 0, b = 1, col = "red")
+```
+
+
 ```{r}
 qqplot(quantiles, sortNTL2,  xlab = "Moffat Model Theoretical Quantiles", ylab = "Data Quantiles")
 abline(a = 0, b =1, col = "red")

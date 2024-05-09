@@ -1,6 +1,8 @@
 ---
 title: "2D Moffat"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 date: "2024-03-25"
 ---
 
