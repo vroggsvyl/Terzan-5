@@ -283,6 +283,14 @@ NLL2D <- function(parameters, x, y){
 ```
 
 ```{r}
+NLL2D2 <- function(parameters, grid){
+  predictedDens <- Moffat2D(grid, parameters)
+  return(-sum(log(predictedDens)))
+}
+```
+
+
+```{r}
 deriv2DNLL <- function(parameters, x, y){
   x0 <- parameters[[1]]
   y0 <- parameters[[2]]
@@ -311,6 +319,18 @@ resultPOI1
 optimPOI1Par <- resultPOI1$par
 optimPOI1Par
 ```
+```{r}
+initGuess <- c(x0 = mean(POI1$x), y0 = mean(POI1$y), alpha = 1, beta = 2)
+lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
+
+xy <- expand.grid(POI1$x, POI1$y)
+
+resultPOI1 <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, grid = xy, method = "L-BFGS-B", lower = lowerBounds)
+resultPOI1
+optimPOI1Par <- resultPOI1$par
+optimPOI1Par
+```
+
 Viewing the optimised function and viewing the data.
 ```{r}
 xRange <- seq(4160, 4180, length = 100)

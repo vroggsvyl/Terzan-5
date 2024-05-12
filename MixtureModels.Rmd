@@ -1,0 +1,608 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Data Set-up
+
+```{r}
+library(here)
+i_am("MixtureModels.Rmd")
+# laptop data from csv
+Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
+# head(Terzan5)
+
+#fishbowl data from ODS
+# library(readODS)
+# Terzan5 <- read_ods(here("Raw Data.ods"), col_types = list(.default = readr::col_guess()), )
+#removing extraneous columns
+
+T5 <- data.frame(Terzan5$x, Terzan5$y)
+colnames(T5) <- c('x','y')
+
+library(ggplot2)
+library(ggpointdensity)
+library(viridis)
+
+#point density plot of all emissions
+#ggplot(T5,aes(x,y)) + 
+  # geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  # scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000, 10000)) + 
+  # coord_fixed()
+```
+
+
+Filtering down to an area of interest with 5 celestial sources
+```{r}
+library(tidyr)
+library(plotly)
+interestArea <- T5 %>%
+  filter(x>4100 & x<4150 & y>4025 & y<4075)
+
+#View area with 5 celestial sources
+ggplot(interestArea,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
+  coord_fixed()
+```
+
+
+A second area with 2 faint celestial sources
+```{r}
+interestArea2 <- T5 %>%
+  filter(x>4105 & x<4135 & y>4160 & y<4190)
+
+#View area
+ggplot(interestArea2,aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
+  coord_fixed()
+```
+
+
+Separating the area with 2 sources into individual celestial sources.
+```{r}
+interestArea2S1 <- interestArea2 %>%
+  filter(x>4110 & x<4120 & y>4177 & y<4187)
+
+interestArea2S2 <- interestArea2 %>%
+  filter(x>4124 & x<4134 & y>4173 & y<4183)
+
+#Checking the number of data points in each area. ~ Approximately equal, expect lambda parameter in mixture model to be close to 0.5.
+nrow(interestArea2S1)
+nrow(interestArea2S2)
+```
+
+
+Creating a random Dataset to use
+```{r}
+set.seed(111)
+data1 <- cbind(rnorm(100, mean = 0, sd = 1), rnorm(100, mean = 0, sd = 1))
+data2 <- cbind(rnorm(100, mean = 5, sd = 1), rnorm(100, mean = 5, sd = 1))
+
+datafull <- rbind(data1, data2)
+plot(data1)
+plot(data2)
+par(pty = "s")
+plot(datafull)
+```
+
+
+## Functions Used
+
+2D Moffat - used for finding optimal values of parameters from a single source.
+```{r}
+#2D Moffat Distribution
+Moffat2DPDF <- function(parameters, x, y){
+  x0 <- parameters[[1]]
+  y0 <- parameters[[2]]
+  alpha <- parameters[[3]]
+  beta <- parameters[[4]]
+  
+  alpha <- pmax(alpha, 1e-6)
+  beta <- pmax(beta, 1 + 1e-6)
+  
+  return(((beta-1)/(pi*alpha^2))*(1+((x - x0)^2 + (y - y0)^2)/alpha^2)^(-beta))
+}
+
+#Negative Log Likelihood of 2D Moffat Distribution
+NLL2D <- function(parameters, x, y){
+  predictedDens <- Moffat2DPDF(parameters, x, y)
+  return(-sum(log(predictedDens)))
+}
+
+#Partial Derivatives of the Negative Log Likelihood
+deriv2DNLL <- function(parameters, x, y){
+  x0 <- parameters[[1]]
+  y0 <- parameters[[2]]
+  alpha <- parameters[[3]]
+  beta <- parameters[[4]]
+  
+ dx0 <- -sum((2*beta*(x-x0))/(alpha^2 + (x-x0)^2 + (y-y0)^2))
+ dy0 <- -sum((2*beta*(y-y0))/(alpha^2 + (x-x0)^2 + (y-y0)^2))
+ dAlpha <- 2*sum(1/alpha + (beta*((x-x0)^2 + (y-y0)^2))/(alpha^3 + alpha*((x-x0)^2 + (y-y0)^2)))
+ dBeta <- -sum(1/beta - log(1+((x-x0)^2 + (y-y0)^2)/alpha^2))
+  
+  return(c(dx0, dy0, dAlpha, dBeta))
+}
+```
+
+Mixture Model
+$$ f(y_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
+
+```{r}
+#A Mixture Model for 2 Moffat Distributions
+MM2MOFFAT <- function(params, x, y){
+  
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  x2 <- params[[6]]
+  y2 <- params[[7]]
+  alpha2 <- params[[8]]
+  beta2 <- params[[9]]
+  
+  #restrictions
+  alpha1 <- pmax(alpha1, 1e-6)
+  beta1 <- pmax(beta1, 1 + 1e-6)
+  alpha2 <- pmax(alpha2, 1e-6)
+  beta2 <- pmax(beta2, 1 + 1e-6)
+  
+  lambda1 <- pmin(lambda1, 1)
+  lambda1 <- pmax(lambda1, 0)
+  lambda2 = 1 - lambda1
+  
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  Density <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  return(Density)
+}
+
+#The Negative Log Likelihood of the Mixture Model
+NLLMM2MOFFAT <- function(params, x, y){
+  predictedDens <- MM2MOFFAT(params, x, y)
+  return(-sum(log(predictedDens)))
+}
+
+#The partial derivatives of the Negative Log Likelihood
+derivNLLMM2MOFFAT <- function(params, x, y){
+  
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  x2 <- params[[6]]
+  y2 <- params[[7]]
+  alpha2 <- params[[8]]
+  beta2 <- params[[9]]
+  
+  lambda2 <-  1 - lambda1
+  
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  s1 <- lambda1/(pi*alpha1^2)
+  s2 <- lambda2/(pi*alpha2^2)
+  
+  u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  
+  #partial derivatives
+  dLambda1 <- -sum(c1/(u*v1^beta1))
+  
+  dx1 <- -sum((2*lambda1*c1*beta1*(x-x1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dx2 <- -sum((2*lambda2*c2*beta2*(x-x2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  dy1 <- -sum((2*lambda1*c1*beta1*(y-y1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dy2 <- -sum((2*lambda2*c2*beta2*(y-y2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  
+  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha2 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  
+  dBeta1 <- -sum((s1*(1+log(v1)-beta1*log(v1)))/(u*v1^beta1))
+  dBeta2 <- -sum((s2*(1+log(v2)-beta2*log(v2)))/(u*v2^beta2))
+  
+  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dx2, dy2, dAlpha2, dBeta2))
+}
+```
+
+Used for visualisations
+```{r}
+MM2MOFFATimage <- function(grid, params){
+  x <- grid[[1]]
+  y <- grid[[2]]
+  
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  lambda2 <- params[[6]]
+  x2 <- params[[7]]
+  y2 <- params[[8]]
+  alpha2 <- params[[9]]
+  beta2 <- params[[10]]
+  
+  #restrictions
+  alpha1 <- pmax(alpha1, 1e-6)
+  beta1 <- pmax(beta1, 1 + 1e-6)
+  alpha2 <- pmax(alpha2, 1e-6)
+  beta2 <- pmax(beta2, 1 + 1e-6)
+  
+  lambda1 <- pmin(lambda1, 1)
+  lambda1 <- pmax(lambda1, 1 - lambda2)
+  lambda2 <- pmin(lambda2, 0 + lambda1)
+  lambda2 <- pmax(lambda2, 1 - lambda1)
+  
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  return(lambda1*c1*v1^(-beta1) + 
+  lambda2*c2*v2^(-beta2))
+}
+```
+
+
+Using the function NumericDeriv to ascertain that the partial derivatives are correct.
+*When using a sequence of values for x and y, the numericderiv function returns a different value for than the function itself.
+```{r}
+myenv <- new.env()
+assign("lambda1", 0.5, envir = myenv)
+assign("beta1", 2, envir = myenv)
+assign("alpha1", 1, envir = myenv)
+assign("x1", 40, envir = myenv)
+assign("y1", 20, envir = myenv)
+assign("lambda2", 0.5, envir = myenv)
+assign("beta2", 1.8, envir = myenv)
+assign("alpha2", 1.2, envir = myenv)
+assign("x2", 30, envir = myenv)
+assign("y2", 30, envir = myenv)
+assign("x", 35, envir = myenv)
+assign("y", 25, envir = myenv)
+
+f <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  predDensity <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  return(-sum(log(predDensity)))
+}
+
+f(lambda1 = 0.5, beta1=2, alpha1=1, x1=40, y1=20, lambda2=0.5, beta2=1.8, alpha2=1.2, x2=30, y2=30, x=35, y=25)
+
+outputnumderiv <- numericDeriv(quote(f(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)), c("lambda1", "x1", "y1", "alpha1", "beta1", "lambda2", "x2", "y2", "alpha2", "beta2"), myenv)
+
+
+outputnumderiv
+
+
+derivf <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  
+  s1 <- lambda1/(pi*alpha1^2)
+  s2 <- lambda2/(pi*alpha2^2)
+  
+  u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  
+  #partial derivatives
+  dLambda1 <- -sum(c1/(u*v1^beta1))
+  dLambda2 <- -sum(c2/(u*v2^beta2))
+  
+  dx1 <- -sum((2*lambda1*c1*beta1*(x-x1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dx2 <- -sum((2*lambda2*c2*beta2*(x-x2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  dy1 <- -sum((2*lambda1*c1*beta1*(y-y1))/(u*(alpha1^2)*(v1^(beta1+1))))
+  dy2 <- -sum((2*lambda2*c2*beta2*(y-y2))/(u*(alpha2^2)*(v2^(beta2+1))))
+  
+  dAlpha1 <- -sum(((2*lambda1*(beta1 - 1)/(pi*alpha1^3*v1^beta1))*((beta1*((x-x1)^2 + (y-y1)^2)/(v1*alpha1^2))-1))/u)
+  dAlpha2 <- -sum(((2*lambda2*(beta2 - 1)/(pi*alpha2^3*v2^beta2))*((beta2*((x-x2)^2 + (y-y2)^2)/(v2*alpha2^2))-1))/u)
+  
+  dBeta1 <- -sum((s1*(1+log(v1)-beta1*log(v1)))/(u*v1^beta1))
+  dBeta2 <- -sum((s2*(1+log(v2)-beta2*log(v2)))/(u*v2^beta2))
+  
+  return(c(dLambda1, dx1, dy1, dAlpha1, dBeta1, dLambda2, dx2, dy2, dAlpha2, dBeta2))
+}
+
+
+outputderivf <- derivf(lambda1 = 0.5, beta1=2, alpha1=1, x1=40, y1=20, lambda2=0.5, beta2=1.8, alpha2=1.2, x2=30, y2=30, x=35, y=25)
+
+outputderivf
+```
+
+
+
+Checking that the Mixture Model of 2 Moffat distributions when integrated is equal to 1. The results are close enough to one in this instance.
+```{r}
+library(pracma)
+#test
+testParams <- c(lambda1 = 0.5, x1 = 1, y1 = 4, alpha1 = 0.4, beta1 = 2, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
+MixtureIntegral <- integral2(MM2MOFFAT, xmin = -40, xmax = 40, ymin = -40, ymax = 40, params = testParams)[[1]]
+MixtureIntegral
+#test2
+testParams2 <- c(lambda1 = 0.7, x1 = 40, y1 = 33, alpha1 = 1.2, beta1 = 1.7, x2 = 3, y2 = -2, alpha2 = 1.2, beta2 = 1.3)
+MixtureIntegral2 <- integral2(MM2MOFFAT, xmin = -100, xmax = 100, ymin = -100, ymax = 100, params = testParams2)[[1]]
+MixtureIntegral2
+#test3
+testParams3 <- c(lambda1 = 0.55, x1 = 0, y1 = 0, alpha1 = 1.2, beta1 = 2, x2 = 2, y2 = 2, alpha2 = 1.2, beta2 = 2)
+MixtureIntegral3 <- integral2(MM2MOFFAT, xmin = -50, xmax = 50, ymin = -50, ymax = 50, params = testParams3)[[1]]
+MixtureIntegral3
+```
+
+
+## Optimising Parameters
+
+The randomly created dataset - 2 clusters with an equal number of points. I expect the values of lambda (the mixing proportion) to be close to 0.5.
+
+First find the optimised parameters of each cluster individually
+```{r}
+#Cluster 1
+initParams = c(x0 = 0, y0 = 0, alpha = 1, beta = 1)
+lowerBounds = c(0, 0, 1e-6, 1+1e-6)
+result <- optim(par = initParams, fn = NLL2D, gr = deriv2DNLL, x = data1[,1], y = data1[,2], method = "L-BFGS-B", lower = lowerBounds)
+opt <- result$par
+
+#Cluster 2
+initParams2 = c(x0 = 5, y0 = 5, alpha = 1, beta = 1)
+lowerBounds = c(0, 0, 1e-6, 1+1e-6)
+result2 <- optim(par = initParams2, fn = NLL2D, gr = deriv2DNLL, x = data2[,1], y = data2[,2], method = "L-BFGS-B", lower = lowerBounds)
+opt2 <- result2$par
+```
+
+Next set up requirements of the Mixture Model
+```{r}
+#Set the initial parameters for the Mixture Model, use the optimised parameters from the individual clusters
+initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha1 = opt[[3]], beta1 = opt[[4]], x2 = opt2[[1]], y2 = opt2[[2]], alpha2 = opt2[[3]], beta2 = opt2[[3]])
+
+#The set the bounds for the Mixture Model, some of these are just arbitrary high numbers.
+lowerbounds = c(1e-6, -100, -100, 1e-6, 1+1e-6, -100, -100, 1e-6, 1+1e-6)
+upperbounds = c(1, 100, 100, 100, 100, 100, 100, 100, 100)
+```
+
+Try to optimise the mixture model - This set up (method = "L-BFGS-B", no upper bound) yields a convergence error, yet the output optimised parameters are different from the input initial paramters.
+*I ran this code chunk after I cleared my environment and reloaded everything within this Markdown and it worked without a convergence error.
+```{r}
+#Optimise Mixture Model
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds)
+
+#Check for convergence
+MMresult
+
+#Compare optimised parameters of the individual clusters to the mixture model 
+opt
+opt2
+out <- MMresult$par
+out
+```
+
+
+
+Use a different set up (method = L-BFGS-B, include upper bound) - This results in an error
+```{r}
+#Optimise Mixture Model
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+#Check for convergence
+MMresult
+
+#Compare optimised parameters of the individual clusters to the mixture model 
+opt
+opt2
+out <- MMresult$par
+out
+```
+
+Use a different set up (method = "CG") - This converges but all the output parameters except Beta2 are the same as the input parameters
+```{r}
+#Optimise Mixture Model
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "CG")
+
+#Check for convergence
+MMresult
+
+#Compare optimised parameters of the individual clusters to the mixture model 
+opt
+opt2
+out <- MMresult$par
+out
+```
+
+Another Set Up (where the gradient function isn't included) - This converges and gives different values for the parameters. The values of alpha and beta are approx 3 times greater than the input values
+```{r}
+#Optimise Mixture Model
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+#Check for convergence
+MMresult
+
+#Compare optimised parameters of the individual clusters to the mixture model 
+opt
+opt2
+out <- MMresult$par
+out
+```
+
+
+#On the Data
+Interest Area 2 - 2 celestial sources
+This doesn't yield a convergence error. However, the value of lambda1 is extremely high.
+```{r}
+initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S2$x), y1 = mean(interestArea2S2$y), alpha1 = 0.5, beta1 = 1.9, x2 = mean(interestArea2S1$x), y2 = mean(interestArea2S1$y), alpha2 = 0.5, beta2 = 1.9)
+lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6, 3900, 3900, 1e-6, 1+1e-6)
+upperbounds = c(1, 4400, 4400, Inf, Inf, 4400, 4400, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult
+out <- MMresult$par
+```
+
+Visualising the results
+```{r}
+xRange <- seq(4105, 4135, length = 100)
+yRange <- seq(4160, 4190, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+#This is an image of the mixture model with the optimised results
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 6) +
+  coord_fixed()
+
+contours
+
+#this is the data
+interestArea2Model <- ggplot(interestArea2, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestArea2Model
+
+# interestArea2Model2 <- ggplot(interestArea2, aes(x = x, y = y)) +
+#   geom_point(size = 0.5, shape = "1") +
+#   coord_fixed()
+# 
+# interestArea2Model2
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestArea2Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+#this is the contours of the model overlayed on the data
+MMcombined
+```
+
+This doesn't include the gradient function in optim.
+```{r}
+initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S2$x), y1 = mean(interestArea2S2$y), alpha1 = 0.5, beta1 = 1.9, x2 = mean(interestArea2S1$x), y2 = mean(interestArea2S1$y), alpha2 = 0.5, beta2 = 1.9)
+lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6, 3900, 3900, 1e-6, 1+1e-6)
+upperbounds = c(1, 4400, 4400, Inf, Inf, 4400, 4400, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult
+out <- MMresult$par
+xRange <- seq(4105, 4135, length = 100)
+yRange <- seq(4160, 4190, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+#This is an image of the mixture model with the optimised results
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 6) +
+  coord_fixed()
+
+contours
+
+#this is the data
+interestArea2Model <- ggplot(interestArea2, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestArea2Model
+
+# interestArea2Model2 <- ggplot(interestArea2, aes(x = x, y = y)) +
+#   geom_point(size = 0.5, shape = "1") +
+#   coord_fixed()
+# 
+# interestArea2Model2
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestArea2Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+#this is the contours of the model overlayed on the data
+MMcombined
+```
+
+This is the set up that doesn't yield a convergence error in the random data. The upper bound isn't included. It yields a convergence error here. 
+It also evaluates lambda1 to be a value that is far greater than 1. This indicates that something in the original function doesn't work properly. As there should be restrictions in place that prevents lambda1 from being greater than 1.
+
+```{r}
+initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S2$x), y1 = mean(interestArea2S2$y), alpha1 = 0.5, beta1 = 1.9, x2 = mean(interestArea2S1$x), y2 = mean(interestArea2S1$y), alpha2 = 0.5, beta2 = 1.9)
+lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6, 3900, 3900, 1e-6, 1+1e-6)
+upperbounds = c(1, 4400, 4400, Inf, Inf, 4400, 4400, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "L-BFGS-B", lower = lowerbounds)
+
+MMresult
+out <- MMresult$par
+```
+
+Interest Area - 5 Celestial Sources
+In this instance, the convergence error still occurs.
+```{r}
+initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, beta1 = 1.9, x2 = 4124, y2 = 4063, alpha2 = 0.5, beta2 = 1.9)
+#the initial parameters for the first component density are the optimal parameters when testing the 2D Moffat Model on an individual source.
+
+lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
+upperbounds = c(1, 5000, 5000, Inf, Inf, 5000, 5000, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds)
+
+MMresult
+out <- MMresult$par
+```
+
+Visualising the Results - this one is worse than the one that I had managed to obtain previously.
+```{r}
+xRange <- seq(4110, 4130, length = 100)
+yRange <- seq(4045, 4065, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 10) +
+  coord_fixed()
+
+interestAreaModel <- ggplot(interestArea, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestAreaModel
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+MMcombined
+```
+

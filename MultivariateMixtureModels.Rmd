@@ -53,7 +53,6 @@ ggplot(interestArea2,aes(x,y)) +
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
   coord_fixed()
-
 ```
 ```{r}
 interestArea2S1 <- interestArea2 %>%
@@ -295,7 +294,8 @@ MM2MOFFAT <- function(params, x, y){
   v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
   v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
   
-  return(lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2))
+  Density <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
+  return(Density)
 }
 
 library(pracma)
@@ -378,6 +378,14 @@ NLLMM2MOFFAT <- function(params, x, y){
   return(-sum(log(predictedDens)))
 }
 ```
+
+```{r}
+NLL2MM2MOFFAT <- function(params, grid){
+  predDens <- MM2MOFFATimage(params, grid)
+  return(-sum(log(predDens)))
+}
+```
+
 
 To find the partial derivatives of the Negative Log Likelihood
 Throughout the derivations the chain rule, quotient rule and product rule are utilised
@@ -466,8 +474,8 @@ assign("beta2", 1.8, envir = myenv)
 assign("alpha2", 1.2, envir = myenv)
 assign("x2", 30, envir = myenv)
 assign("y2", 30, envir = myenv)
-assign("x", 35, envir = myenv)
-assign("y", 25, envir = myenv)
+assign("x", seq(30, 40, length = 11), envir = myenv)
+assign("y", seq(20, 30, length = 11), envir = myenv)
 
 f <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
   #common terms
@@ -483,6 +491,7 @@ f <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x,
 f(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)
 
 outputnumderiv <- numericDeriv(quote(f(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y)), c("lambda1", "x1", "y1", "alpha1", "beta1", "lambda2", "x2", "y2", "alpha2", "beta2"), myenv)
+outputnumderiv
 ```
 ```{r}
 derivf <- function(lambda1, beta1, alpha1, x1, y1, lambda2, beta2, alpha2, x2, y2, x, y){
@@ -584,7 +593,6 @@ derivNLLMM2MOFFAT <- function(params, x, y){
 
 
 
-
 ```{r}
 set.seed(111)
 data1 <- cbind(rnorm(300, mean = 0, sd = 0.4), rnorm(300, mean = 0, sd = 0.4))
@@ -594,6 +602,8 @@ datafull <- rbind(data1, data2)
 plot(data1)
 plot(data2)
 plot(datafull)
+
+xy <- expand.grid(datafull[,1], datafull[,2])
 
 initParams = c(x0 = 0, y0 = 0, alpha = 1, beta = 1)
 lowerBounds = c(0, 0, 1e-6, 1+1e-6)
@@ -613,10 +623,11 @@ initialParams <- c(lambda1 = 0.5, x1 = opt[[1]], y1 = opt[[2]], alpha1 = opt[[3]
 # initialParams2 <- c(lambda1 = 0.5, x1 = 0, y1 = 0, alpha = 1.1, beta = 1.8, lambda2 = 0.5, x2 = 5, y2 = 5, alpha = 1.2, beta = 2)
 
 lowerbounds = c(1e-6, -100, -100, 1e-6, 1+1e-6, -100, -100, 1e-6, 1+1e-6)
-upperbounds = c(1, 100, 100, Inf, Inf, 100, 100, Inf, Inf)
+upperbounds = c(1, 100, 100, 100, 100, 100, 100, 100, 100)
+xy <- expand.grid(datafull[,1], datafull[,2])
 
 
-MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = datafull[,1], y = datafull[,2], method = "L-BFGS-B", lower = lowerbounds)
 MMresult
 
 opt
@@ -624,6 +635,14 @@ opt2
 out <- MMresult$par
 out
 ```
+```{r}
+NLLMM2MOFFAT(initialParams, x = datafull[,1], y = datafull[,2])
+```
+```{r}
+MM2MOFFAT(initialParams, x = datafull[,1], y = datafull[,2])
+```
+
+
 ```{r}
 xRange <- seq(-20, 20, length = 100)
 yRange <- seq(-20, 20, length = 100)
@@ -672,7 +691,7 @@ initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, 
 lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
 upperbounds = c(1, 5000, 5000, Inf, Inf, 5000, 5000, Inf, Inf)
 
-MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", upper = upperbounds, lower = lowerbounds)
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, gr = derivNLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds)
 
 MMresult
 out <- MMresult$par
@@ -756,3 +775,4 @@ MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from
 MMcombined <- interestArea2Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 MMcombined
 ```
+

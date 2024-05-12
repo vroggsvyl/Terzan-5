@@ -7,10 +7,8 @@ output:
 date: "2024-03-21"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
+## Set Up
+Libraries
 ```{r}
 library(ggplot2)
 library(plotly)
@@ -20,7 +18,7 @@ library(viridis)
 library(tidyr)
 library(fitdistrplus)
 
-## Color pallete
+## Color palette
 cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
@@ -40,7 +38,6 @@ Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types 
 T5 <- data.frame(Terzan5$x, Terzan5$y)
 colnames(T5) <- c('x','y')
 ```
-
 
 Viewing the dataset via a density heatmap.
 ```{r}
@@ -98,15 +95,15 @@ line2.5 <- POI2 %>%
 ```{r}
 modelPOI2 + geom_hline(yintercept = 4050.5) + geom_hline(yintercept = 4051.5)
 ```
+## 1D Distribution Fitting
+Here is a histogram of the data that I would like to try and model.
 ```{r}
 histLine2 <- ggplot(line2) +
   geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5])
 histLine2
 ```
 
-
-Choosing one of my slices, I am to fit a distribution to it to be able to predict if the observations belong to the celestial source or not. 
-Fitting to a Normal Distribution
+# Fitting to a Normal Distribution
 ```{r}
 xl2 <- line2$x
 
@@ -125,15 +122,18 @@ negative_log_likelihood <- function(parameters, x) {
 }
 
 initial_guess <- c(mean = 4115, sd = 1)
+
 # Optimize the negative log-likelihood function
 result <- optim(par = initial_guess, fn = negative_log_likelihood, x = xl2, method = "Nelder-Mead")
 
+#check for convergence
 result
 
 # Extract the optimized parameters
 optimized_parameters <- result$par
 optimized_parameters
 ```
+Overlay the plot of the normal distribution with the optimised parameters on the histogram of the data.
 ```{r}
 optimParameters2N <- gaussian_density(optimized_parameters, xl2)
 
