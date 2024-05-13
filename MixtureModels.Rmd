@@ -606,3 +606,43 @@ MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y =
 MMcombined
 ```
 
+
+Without the gradient function
+```{r}
+initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, beta1 = 1.9, x2 = 4124, y2 = 4063, alpha2 = 0.5, beta2 = 1.9)
+#the initial parameters for the first component density are the optimal parameters when testing the 2D Moffat Model on an individual source.
+
+lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
+upperbounds = c(1, 5000, 5000, Inf, Inf, 5000, 5000, Inf, Inf)
+
+MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds)
+
+MMresult
+out <- MMresult$par
+```
+```{r}
+xRange <- seq(4110, 4130, length = 100)
+yRange <- seq(4045, 4065, length = 100)
+grid <- expand.grid(x = xRange, y = yRange)
+
+oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1-out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
+zMM <- MM2MOFFATimage(grid, params = oparams)
+zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM), bins = 10) +
+  coord_fixed()
+
+interestAreaModel <- ggplot(interestArea, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestAreaModel
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+MMcombined
+```
