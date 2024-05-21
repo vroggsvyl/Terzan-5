@@ -1011,3 +1011,133 @@ MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from
 MMcombined <- interestAreaModel3 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 MMcombined
 ```
+
+## 8 Sources
+
+```{r}
+MM8MOFFAT <- function(params, x, y){
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  lambda2 <- params[[6]]
+  x2 <- params[[7]]
+  y2 <- params[[8]]
+  alpha2 <- params[[9]]
+  beta2 <- params[[10]]
+  
+  #component density 3
+  lambda3 <- params[[11]]
+  x3 <- params[[12]]
+  y3 <- params[[13]]
+  alpha3 <- params[[14]]
+  beta3 <- params[[15]]
+  
+  #component density 4
+  lambda4 <- params[[16]]
+  x4 <- params[[17]]
+  y4 <- params[[18]]
+  alpha4 <- params[[19]]
+  beta4 <- params[[20]]
+  
+  #component density 5
+  lambda5 <- params[[21]]
+  x5 <- params[[22]]
+  y5 <- params[[23]]
+  alpha5 <- params[[24]]
+  beta5 <- params[[25]]
+  
+  #component density 6
+  lambda6 <- params[[26]]
+  x6 <- params[[27]]
+  y6 <- params[[28]]
+  alpha6 <- params[[29]]
+  beta6 <- params[[30]]
+  
+  #component density 7
+  lambda7 <- params[[31]]
+  x7 <- params[[32]]
+  y7 <- params[[33]]
+  alpha7 <- params[[34]]
+  beta7 <- params[[35]]
+  
+  #component density 8
+  x8 <- params[[36]]
+  y8 <- params[[37]]
+  alpha8 <- params[[38]]
+  beta8 <- params[[39]]
+  
+  lambda8 = 1 - lambda1 - lambda2 - lambda3 - lambda4 - lambda5 - lambda6 - lambda7
+  
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  c3 <- (beta3 - 1)/(pi*alpha3^2)
+  c4 <- (beta4 - 1)/(pi*alpha4^2)
+  c5 <- (beta5 - 1)/(pi*alpha5^2)
+  c6 <- (beta6 - 1)/(pi*alpha6^2)
+  c7 <- (beta7 - 1)/(pi*alpha7^2)
+  c8 <- (beta8 - 1)/(pi*alpha8^2)
+  
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  v3 <- 1+(((x-x3)^2+(y-y3)^2)/alpha3^2)
+  v4 <- 1+(((x-x4)^2+(y-y4)^2)/alpha4^2)
+  v5 <- 1+(((x-x5)^2+(y-y5)^2)/alpha5^2)
+  v6 <- 1+(((x-x6)^2+(y-y6)^2)/alpha6^2)
+  v7 <- 1+(((x-x7)^2+(y-y7)^2)/alpha7^2)
+  v8 <- 1+(((x-x8)^2+(y-y8)^2)/alpha8^2)
+  
+  Density <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2) + lambda3*c3*v3^(-beta3) + lambda4*c4*v4^(-beta4) + lambda5*c5*v5^(-beta5) + lambda6*c6*v6^(-beta6) + lambda7*c7*v7^(-beta7) + lambda8*c8*v8^(-beta8)
+  
+  return(-sum(log(Density)))
+}
+```
+
+```{r}
+out5
+```
+
+
+```{r}
+initialParams8 <- c(lambda1 = 0.35, x1 = 4129.4, y1 = 4094.5, alpha1 = 0.8, beta1 = 1.4,
+                   lambda2 = 0.3, x2 = 4146.5, y2 = 4091.5, alpha2 = 0.6, beta2 = 1.4,
+                   lambda3 = 0.1, x3 = 418.7, y3 = 4098.7, alpha3 = 0.73, beta3 = 2.2,
+                   lambda4 = 0.05, x4 = 4147.9, y4 = 4098.8, alpha4 = 0.89, beta4 = 2.5,
+                   lambda5 = 0.05, x5 = 4135, y5 = 4096, alpha5 = 0.8, beta5 = 2,
+                   lambda6 = 0.05, x6 = 4146, y6 = 4088, alpha6 = 0.8, beta6 = 2,
+                   lambda7 = 0.05, x7 = 4134, y7 = 4099, alpha7 = 0.8, beta7 = 2,
+                   lambda8 = 0.05, x8 = 4126, y8 = 4099, alpha8 = 0.8, beta8 = 2
+                   )
+
+MM8MOFFAT(initialParams5, xRange, yRange)
+
+lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MMresult8 <- optim(par = initialParams8, fn = MM8MOFFAT, x = interestArea3$x, y = interestArea3$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult8
+out8 <- MMresult8$par
+```
