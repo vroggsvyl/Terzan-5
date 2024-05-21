@@ -86,13 +86,13 @@ derivNLLMM2MOFFAT <- function(params, x, y){
   #common terms
   c1 <- (beta1 - 1)/(pi*alpha1^2)
   c2 <- (beta2 - 1)/(pi*alpha2^2)
-  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
-  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  v1 <- 1 + (((x - x1)^2 + (y - y1)^2)/alpha1^2)
+  v2 <- 1 + (((x - x2)^2 + (y - y2)^2)/alpha2^2)
   
   s1 <- lambda1/(pi*alpha1^2)
   s2 <- lambda2/(pi*alpha2^2)
   
-  u <- lambda1*c1*v1^(-beta1) + (1 - lambda1)*c2*v2^(-beta2)
+  u <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2)
   
   #partial derivatives
   dLambda1 <- -sum(c1/(u*v1^beta1))
@@ -139,14 +139,22 @@ MM2MOFFATimage <- function(grid, params){
 ```
 
 ```{r}
-initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S2$x), y1 = mean(interestArea2S2$y), alpha1 = 0.5, beta1 = 1.9, x2 = mean(interestArea2S1$x), y2 = mean(interestArea2S1$y), alpha2 = 0.5, beta2 = 1.9)
-lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6, 3900, 3900, 1e-6, 1+1e-6)
-upperbounds = c(1, 4400, 4400, Inf, Inf, 4400, 4400, Inf, Inf)
+initialParams <- c(lambda1 = 0.5, x1 = mean(interestArea2S2$x), y1 = mean(interestArea2S2$y), alpha1 = 0.8, beta1 = 1.3,
+                   x2 = mean(interestArea2S1$x), y2 = mean(interestArea2S1$y), alpha2 = 0.9, beta2 = 1.3
+                   )
 
-MMresult <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "Nelder-Mead")
+lowerbounds = c(0, 3900, 3900, 1e-6, 1+1e-6,
+                3900, 3900, 1e-6, 1+1e-6
+                )
 
-MMresult
-out <- MMresult$par
+upperbounds = c(1, 4400, 4400, Inf, Inf,
+                4400, 4400, Inf, Inf
+                )
+
+MM2result <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea2$x, y = interestArea2$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MM2result
+out2 <- MM2result$par
 ```
 
 
@@ -156,16 +164,16 @@ xRange <- seq(4105, 4135, length = 100)
 yRange <- seq(4160, 4190, length = 100)
 grid <- expand.grid(x = xRange, y = yRange)
 
-oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], 1 - out[[1]], out[[6]], out[[7]], out[[8]], out[[9]])
-zMM <- MM2MOFFATimage(grid, params = oparams)
-zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+Opt2params <- c(out2[[1]], out2[[2]], out2[[3]], out2[[4]], out2[[5]], 1 - out2[[1]], out2[[6]], out2[[7]], out2[[8]], out2[[9]])
+zMM2 <- MM2MOFFATimage(grid, params = Opt2params)
+zmat2 <- matrix(zMM2, nrow = length(xRange), ncol = length(yRange))
 
 #This is an image of the mixture model with the optimised results
 par(pty = "s")
-image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+image(xRange, yRange, zmat2, xlab = "x", ylab = "y", main = "2D Moffat")
 
 contours <- ggplot(grid, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zMM), bins = 10) +
+  stat_contour(aes(z = zMM2), bins = 10) +
   coord_fixed()
 
 contours
@@ -185,6 +193,80 @@ MMcombined <- interestArea2Model + geom_path(data = MMcontourData, aes(x = x, y 
 MMcombined
 ```
 
+```{r}
+initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, beta1 = 1.9,
+                   x2 = 4124, y2 = 4063, alpha2 = 0.5, beta2 = 1.9
+                   )
+
+lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MM2result <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MM2result
+out2 <- MM2result$par
+```
+
+```{r}
+xRange <- seq(4100, 4140, length = 200)
+yRange <- seq(4040, 4075, length = 200)
+grid <- expand.grid(x = xRange, y = yRange)
+
+Opt2params <- c(out2[[1]], out2[[2]], out2[[3]], out2[[4]], out2[[5]], 1 - out2[[1]], out2[[6]], out2[[7]], out2[[8]], out2[[9]])
+zMM2 <- MM2MOFFATimage(grid, params = Opt2params)
+zmat2 <- matrix(zMM2, nrow = length(xRange), ncol = length(yRange))
+
+#This is an image of the mixture model with the optimised results
+par(pty = "s")
+image(xRange, yRange, zmat2, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM2), bins = 20) +
+  coord_fixed()
+
+contours
+
+#this is the data
+interestAreaModel <- ggplot(interestArea, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestAreaModel
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+#this is the contours of the model overlayed on the data
+MMcombined
+```
+
+```{r}
+out2
+
+#use previously optimised values
+initialParams <- c(lambda1 = out2[[1]], x1 = out2[[2]], y1 = out2[[3]], alpha1 = out2[[4]], beta1 = out2[[5]],
+                  x2 = out2[[6]], y2 = out2[[7]], alpha2 = out2[[8]], beta2 = out2[[9]]
+                   )
+
+lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MM2result <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds, control = list(trace = 6))
+
+MM2result
+out2 <- MM2result$par
+```
 
 
 ## 3 Sources
@@ -264,32 +346,43 @@ MM3MOFFATimage <- function(grid, params){
 ```
 
 ```{r}
-initialParams <- c(lambda1 = 0.7, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, beta1 = 1.9, lambda2 = 0.2, x2 = 4124, y2 = 4063, alpha2 = 0.5, beta2 = 1.9, x3 = 4128, y3 = 4069, alpha3 = 0.5, beta3 = 1.9)
+out2
+#use optimised parameters from 2 source model
 
-lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6, 1e-6, 3000, 3000, 1e-6, 1+1e-6, 3000, 3000, 1e-6, 1+1e-6)
-upperbounds = c(1, 5000, 5000, Inf, Inf, 1, 5000, 5000, Inf, Inf, 5000, 5000, Inf, Inf)
+initialParams <- c(lambda1 = out2[[1]], x1 = out2[[2]], y1 = out2[[3]], alpha1 = out2[[4]], beta1 = out2[[5]],
+                   lambda2 = 0.2 , x2 = out2[[6]], y2 = out2[[7]], alpha2 = out2[[8]], beta2 = out2[[9]],
+                   x3 = 4128, y3 = 4069, alpha3 = 0.5, beta3 = 1.4
+                   )
 
-MMresult <- optim(par = initialParams, fn = MM3MOFFAT, x = interestArea$x, y = interestArea$y, method = "Nelder-Mead")
+lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
 
-MMresult
-out <- MMresult$par
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MM3result <- optim(par = initialParams, fn = MM3MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MM3result
+out3 <- MM3result$par
 ```
 
 ```{r}
-out
-
 xRange <- seq(4100, 4140, length = 200)
 yRange <- seq(4040, 4075, length = 200)
 grid <- expand.grid(x = xRange, y = yRange)
 
-oparams <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]], out[[6]], out[[7]], out[[8]], out[[9]], out[[10]], 1 - out[[1]] - out[[6]], out[[11]], out[[12]], out[[13]], out[[14]])
-zMM <- MM3MOFFATimage(grid, params = oparams)
-zmat <- matrix(zMM, nrow = length(xRange), ncol = length(yRange))
+opt3params <- c(out3[[1]], out3[[2]], out3[[3]], out3[[4]], out3[[5]], out3[[6]], out3[[7]], out3[[8]], out3[[9]], out3[[10]], 1 - out3[[1]] - out3[[6]], out3[[11]], out3[[12]], out3[[13]], out3[[14]])
+zMM3 <- MM3MOFFATimage(grid, params = opt3params)
+zmat3 <- matrix(zMM3, nrow = length(xRange), ncol = length(yRange))
 par(pty = "s")
-image(xRange, yRange, zmat, xlab = "x", ylab = "y", main = "2D Moffat")
+image(xRange, yRange, zmat3, xlab = "x", ylab = "y", main = "2D Moffat")
 
 contours <- ggplot(grid, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zMM), bins = 20) +
+  stat_contour(aes(z = zMM3), bins = 40) +
   coord_fixed()
 
 contours
@@ -312,9 +405,9 @@ yRange <- seq(4035, 4075, length = 200)
 grid <- expand.grid(x = xRange, y = yRange)
 
 #params
-oparams1 <- c(out[[1]], out[[2]], out[[3]], out[[4]], out[[5]])
-oparams2 <- c(out[[6]], out[[7]], out[[8]], out[[9]], out[[10]])
-oparams3 <- c(1 - out[[1]] - out[[6]], out[[11]], out[[12]], out[[13]], out[[14]])
+oparams1 <- c(out3[[1]], out3[[2]], out3[[3]], out3[[4]], out3[[5]])
+oparams2 <- c(out3[[6]], out3[[7]], out3[[8]], out3[[9]], out3[[10]])
+oparams3 <- c(1 - out3[[1]] - out3[[6]], out3[[11]], out3[[12]], out3[[13]], out3[[14]])
 
 #Image 1
 zMM1 <- MOFFAT2Dimage(grid, params = oparams1)
@@ -337,7 +430,7 @@ image(xRange, yRange, zmat3, xlab = "x", ylab = "y", main = "2D Moffat")
 
 #build contours
 contours1 <- ggplot(grid, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zMM1), bins = 20) +
+  stat_contour(aes(z = zMM1), bins = 40) +
   coord_fixed()
 
 contours2 <- ggplot(grid, aes(x = x, y = y)) + 
@@ -345,7 +438,7 @@ contours2 <- ggplot(grid, aes(x = x, y = y)) +
   coord_fixed()
 
 contours3 <- ggplot(grid, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zMM3), bins = 20) +
+  stat_contour(aes(z = zMM3), bins = 5) +
   coord_fixed()
 
 #view contour plots
@@ -395,7 +488,7 @@ MM5MOFFAT <- function(params, x, y){
   #component density 3
   lambda3 <- params[[11]]
   x3 <- params[[12]]
-  y3 <- params[[12]]
+  y3 <- params[[13]]
   alpha3 <- params[[14]]
   beta3 <- params[[15]]
   
@@ -432,21 +525,87 @@ MM5MOFFAT <- function(params, x, y){
   
   return(-sum(log(Density)))
 }
+
+MM5MOFFATimage <- function(grid, params){
+  x <- grid[[1]]
+  y <- grid[[2]]
+  
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  lambda2 <- params[[6]]
+  x2 <- params[[7]]
+  y2 <- params[[8]]
+  alpha2 <- params[[9]]
+  beta2 <- params[[10]]
+
+  #component density 3
+  lambda3 <- params[[11]]
+  x3 <- params[[12]]
+  y3 <- params[[13]]
+  alpha3 <- params[[14]]
+  beta3 <- params[[15]]
+  
+  #component density 4
+  lambda4 <- params[[16]]
+  x4 <- params[[17]]
+  y4 <- params[[18]]
+  alpha4 <- params[[19]]
+  beta4 <- params[[20]]
+  
+  #component density 5
+  lambda5 <- params[[21]]
+  x5 <- params[[22]]
+  y5 <- params[[23]]
+  alpha5 <- params[[24]]
+  beta5 <- params[[25]]
+  
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  c3 <- (beta3 - 1)/(pi*alpha3^2)
+  c4 <- (beta4 - 1)/(pi*alpha4^2)
+  c5 <- (beta5 - 1)/(pi*alpha5^2)
+  
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  v3 <- 1+(((x-x3)^2+(y-y3)^2)/alpha3^2)
+  v4 <- 1+(((x-x4)^2+(y-y4)^2)/alpha4^2)
+  v5 <- 1+(((x-x5)^2+(y-y5)^2)/alpha5^2)
+  
+  return(lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2) + lambda3*c3*v3^(-beta3) + lambda4*c4*v4^(-beta4) + lambda5*c5*v5^(-beta5))
+}
 ```
 
 
 ```{r}
-initialParams <- c(lambda1 = 0.6, x1 = 4115.261, y1 = 4051.904, alpha1 = 0.683, beta1 = 1.9,
-                   lambda2 = 0.2, x2 = 4124, y2 = 4063, alpha2 = 0.5, beta2 = 1.9,
-                   lambda3 = 0.1, x3 = 4128, y3 = 4069, alpha3 = 0.5, beta3 = 1.9,
-                   lambda4 = 0.05, x4 = 4128, y4 = 4064, alpha4 = 0.5, beta4 = 1.9,
-                   lambda5 = 0.05, x5 = 4129, y5 = 4073, alpha5 = 0.5, beta5 = 1.9
+out3
+#use optimised parameters from 3 sources
+initialParams5 <- c(lambda1 = out3[[1]], x1 = out3[[2]], y1 = out3[[3]], alpha1 = out3[[4]], beta1 = out3[[5]],
+                   lambda2 = out3[[6]], x2 = out3[[7]], y2 = out3[[8]], alpha2 = out3[[9]], beta2 = out3[[10]],
+                   lambda3 = 0.1, x3 = out3[[11]], y3 = out3[[12]], alpha3 = out3[[13]], beta3 = out3[[14]],
+                   lambda4 = 0.05, x4 = 4128, y4 = 4064, alpha4 = 0.5, beta4 = 1.2,
+                   x5 = 4129, y5 = 4073, alpha5 = 0.5, beta5 = 1.2
                    )
 
-lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
-                1e-6, 3000, 3000, 1e-6, 1+1e-6,
-                1e-6, 3000, 3000, 1e-6, 1+1e-6,
-                1e-6, 3000, 3000, 1e-6, 1+1e-6,
+# initialParams5 <- c(lambda1 = 0.6, x1 = 4115, y1 = 4050, alpha1 = 0.5, beta1 = 1.5,
+#                    lambda2 = 0.2, x2 = 4124, y2 = 4063, alpha2 = 0.45, beta2 = 1.3,
+#                    lambda3 = 0.1, x3 = 4128, y3 = 4069, alpha3 = 0.6, beta3 = 1.4,
+#                    lambda4 = 0.05, x4 = 4128, y4 = 4064, alpha4 = 0.5, beta4 = 1.2,
+#                    x5 = 4129, y5 = 4073, alpha5 = 0.5, beta5 = 1.2
+#                    )
+
+MM5MOFFAT(initialParams5, xRange, yRange)
+
+lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
                 3000, 3000, 1e-6, 1+1e-6
                 )
 
@@ -457,7 +616,7 @@ upperbounds = c(1, 5000, 5000, Inf, Inf,
                 5000, 5000, Inf, Inf
                 )
 
-MMresult5 <- optim(par = initialParams, fn = MM5MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+MMresult5 <- optim(par = initialParams5, fn = MM5MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)#, control = list(trace = 6))
 
 MMresult5
 out5 <- MMresult5$par
@@ -558,5 +717,297 @@ MMcombined <- interestAreaModel +
   geom_path(data = MMcontourData5, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 
 
+MMcombined
+```
+
+
+# Another Area
+
+
+```{r}
+ggplot(interestArea3, aes(x,y)) + 
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
+  coord_fixed()
+```
+```{r}
+#use previously optimised values
+initialParams <- c(lambda1 = 0.4, x1 = 4130, y1 = 4095, alpha1 = 0.5, beta1 = 1.5,
+                   x2 = 4146, y2 = 4092, alpha2 = 0.45, beta2 = 1.3
+                   )
+
+lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MM2result <- optim(par = initialParams, fn = NLLMM2MOFFAT, x = interestArea3$x, y = interestArea3$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MM2result
+out2 <- MM2result$par
+```
+
+```{r}
+xRange <- seq(4125, 4150, length = 200)
+yRange <- seq(4075, 4100, length = 200)
+grid <- expand.grid(x = xRange, y = yRange)
+
+Opt2params <- c(out2[[1]], out2[[2]], out2[[3]], out2[[4]], out2[[5]], 1 - out2[[1]], out2[[6]], out2[[7]], out2[[8]], out2[[9]])
+zMM2 <- MM2MOFFATimage(grid, params = Opt2params)
+zmat2 <- matrix(zMM2, nrow = length(xRange), ncol = length(yRange))
+
+#This is an image of the mixture model with the optimised results
+par(pty = "s")
+image(xRange, yRange, zmat2, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM2), bins = 20) +
+  coord_fixed()
+
+contours
+
+#this is the data
+interestAreaModel3 <- ggplot(interestArea3, aes(x = x, y = y)) +
+  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
+  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
+  coord_fixed()
+
+interestAreaModel3
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestAreaModel3 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+#this is the contours of the model overlayed on the data
+MMcombined
+```
+```{r}
+initialParams <- c(lambda1 = 0.4, x1 = 4130, y1 = 4095, alpha1 = 0.5, beta1 = 1.5,
+                   lambda2 = 0.4, x2 = 4146, y2 = 4092, alpha2 = 0.45, beta2 = 1.3,
+                   x3 = 4139, y3 = 4099, alpha3 = 0.6, beta3 = 1.4
+                   )
+
+lowerbounds = c(1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                1e-6, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MM3result <- optim(par = initialParams, fn = MM3MOFFAT, x = interestArea3$x, y = interestArea3$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MM3result
+out3 <- MM3result$par
+```
+
+```{r}
+xRange <- seq(4125, 4150, length = 200)
+yRange <- seq(4075, 4100, length = 200)
+grid <- expand.grid(x = xRange, y = yRange)
+
+#params
+oparams1 <- c(out3[[1]], out3[[2]], out3[[3]], out3[[4]], out3[[5]])
+oparams2 <- c(out3[[6]], out3[[7]], out3[[8]], out3[[9]], out3[[10]])
+oparams3 <- c(1 - out3[[1]] - out3[[6]], out3[[11]], out3[[12]], out3[[13]], out3[[14]])
+
+#Image 1
+zMM1 <- MOFFAT2Dimage(grid, params = oparams1)
+zmat1 <- matrix(zMM1, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat1, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 2
+zMM2 <- MOFFAT2Dimage(grid, params = oparams2)
+zmat2 <- matrix(zMM2, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat2, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 3
+zMM3 <- MOFFAT2Dimage(grid, params = oparams3)
+zmat3 <- matrix(zMM3, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat3, xlab = "x", ylab = "y", main = "2D Moffat")
+
+
+#build contours
+contours1 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM1), bins = 10) +
+  coord_fixed()
+
+contours2 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM2), bins = 10) +
+  coord_fixed()
+
+contours3 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM3), bins = 5) +
+  coord_fixed()
+
+#view contour plots
+contours1
+contours2
+contours3
+
+interestAreaModel3
+
+#extracting the contours (from the optimised function)
+MMcontourData1 <- ggplot_build(contours1)$data[[1]]
+MMcontourData2 <- ggplot_build(contours2)$data[[1]] 
+MMcontourData3 <- ggplot_build(contours3)$data[[1]] 
+
+MMcombined <- interestAreaModel3 + 
+  geom_path(data = MMcontourData1, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData2, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData3, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+
+MMcombined
+```
+
+```{r}
+initialParams5 <- c(lambda1 = 0.4, x1 = 4130, y1 = 4095, alpha1 = 0.5, beta1 = 1.5,
+                   lambda2 = 0.4, x2 = 4146, y2 = 4092, alpha2 = 0.45, beta2 = 1.3,
+                   lambda3 = 0.1, x3 = 4139, y3 = 4099, alpha3 = 0.6, beta3 = 1.4,
+                   lambda4 = 0.05, x4 = 4148, y4 = 4098, alpha4 = 0.5, beta4 = 1.2,
+                   x5 = 4135, y5 = 4096, alpha5 = 0.5, beta5 = 1.2
+                   )
+
+MM5MOFFAT(initialParams5, xRange, yRange)
+
+lowerbounds = c(0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                0, 3000, 3000, 1e-6, 1+1e-6,
+                3000, 3000, 1e-6, 1+1e-6
+                )
+
+upperbounds = c(1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                1, 5000, 5000, Inf, Inf,
+                5000, 5000, Inf, Inf
+                )
+
+MMresult5 <- optim(par = initialParams5, fn = MM5MOFFAT, x = interestArea3$x, y = interestArea3$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)
+
+MMresult5
+out5 <- MMresult5$par
+```
+```{r}
+#params
+oparams1 <- c(out5[[1]], out5[[2]], out5[[3]], out5[[4]], out5[[5]])
+oparams2 <- c(out5[[6]], out5[[7]], out5[[8]], out5[[9]], out5[[10]])
+oparams3 <- c(out5[[11]], out5[[12]], out5[[13]], out5[[14]], out5[[15]])
+oparams4 <- c(out5[[16]], out5[[17]], out5[[18]], out5[[19]], out5[[20]])
+oparams5 <- c(1 - out5[[1]] - out5[[6]] - out5[[11]] - out5[[16]], out5[[21]], out5[[22]], out5[[23]], out5[[24]])
+
+#Image 1
+zMM1 <- MOFFAT2Dimage(grid, params = oparams1)
+zmat1 <- matrix(zMM1, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat1, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 2
+zMM2 <- MOFFAT2Dimage(grid, params = oparams2)
+zmat2 <- matrix(zMM2, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat2, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 3
+zMM3 <- MOFFAT2Dimage(grid, params = oparams3)
+zmat3 <- matrix(zMM3, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat3, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 4
+zMM4 <- MOFFAT2Dimage(grid, params = oparams4)
+zmat4 <- matrix(zMM4, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat4, xlab = "x", ylab = "y", main = "2D Moffat")
+
+#Image 5
+zMM5 <- MOFFAT2Dimage(grid, params = oparams5)
+zmat5 <- matrix(zMM5, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat5, xlab = "x", ylab = "y", main = "2D Moffat")
+
+
+#build contours
+contours1 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM1), bins = 10) +
+  coord_fixed()
+
+contours2 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM2), bins = 10) +
+  coord_fixed()
+
+contours3 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM3), bins = 10) +
+  coord_fixed()
+
+contours4 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM4), bins = 5) +
+  coord_fixed()
+
+contours5 <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM5), bins = 5) +
+  coord_fixed()
+
+#view contour plots
+contours1
+contours2
+contours3
+contours4
+contours5
+
+#extracting the contours (from the optimised function)
+MMcontourData1 <- ggplot_build(contours1)$data[[1]]
+MMcontourData2 <- ggplot_build(contours2)$data[[1]] 
+MMcontourData3 <- ggplot_build(contours3)$data[[1]] 
+MMcontourData4 <- ggplot_build(contours4)$data[[1]] 
+MMcontourData5 <- ggplot_build(contours5)$data[[1]] 
+
+
+MMcombined <- interestAreaModel3 + 
+  geom_path(data = MMcontourData1, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData2, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData3, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData4, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) +
+  geom_path(data = MMcontourData5, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+
+interestAreaModel3
+MMcombined
+```
+
+```{r}
+xRange <- seq(4125, 4150, length = 200)
+yRange <- seq(4075, 4100, length = 200)
+grid <- expand.grid(x = xRange, y = yRange)
+
+opt5params <- c(out5[[1]], out5[[2]], out5[[3]], out5[[4]], out5[[5]],
+                out5[[6]], out5[[7]], out5[[8]], out5[[9]], out5[[10]],
+                out5[[11]], out5[[12]], out5[[13]], out5[[14]], out5[[15]],
+                out5[[16]], out5[[17]], out5[[18]], out5[[19]], out5[[20]], 
+                1 - out5[[1]] - out5[[6]] - out5[[11]] - out5[[16]], out5[[21]], out5[[22]], out5[[23]], out5[[24]])
+
+zMM5 <- MM5MOFFATimage(grid, params = opt5params)
+zmat5 <- matrix(zMM5, nrow = length(xRange), ncol = length(yRange))
+par(pty = "s")
+image(xRange, yRange, zmat5, xlab = "x", ylab = "y", main = "2D Moffat")
+
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zMM5), bins = 10) +
+  coord_fixed()
+
+contours
+
+interestAreaModel3
+
+MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
+MMcombined <- interestAreaModel3 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 MMcombined
 ```
