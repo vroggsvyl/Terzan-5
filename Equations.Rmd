@@ -1,0 +1,157 @@
+---
+title: "Equations"
+output:
+  word_document: default
+  html_document: default
+date: "2024-05-15"
+---
+
+This Markdown is used exclusively for any equations required for the dissertation writing
+
+## 1D
+
+Moffat Model:
+$$f(x) = A(1+\frac{(x-\mu)^2}{\alpha^2})^{-\beta}$$
+Where A = amplitude, $\mu$ = position of the maximum, $\alpha$ = core width, $\beta$ = power index.
+
+Moffat Distribution:
+$$f(x) = \frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}$$
+To obtain the Negative Log Likelihood.
+First I take the Likelihood of the parameters of f(x). 
+$$L(x; \mu, \alpha, \beta) = \prod f(x)$$
+Next I take the log of the likelihood and apply the log law
+$ln\left[ab\right] = ln\left[a\right]+ln\left[b\right]$.
+$$ln\left[L(x; \mu, \alpha, \beta)\right] = \sum(ln\left[f(x)\right])$$
+Taking the negative of this yields the Negative Log Likelihood.
+Let NLL = Negative Log Likelihood
+
+$$NLL = -\sum\ln\left[\frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}\right]$$
+By applying more log laws, this can be expanded
+
+
+$$NLL = -\sum(\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right])$$
+
+In order to take the partial derivative with respect to $\mu$ I utilised the chain rule.
+Let $ u = \left[1+v^2\alpha^{-2}\right] $.
+Let $ v = x - \mu $
+$\frac{\delta}{\delta\mu} = \frac{\delta}{\delta u} \frac{\delta u}{\delta v} \frac{\delta v}{\delta \mu}$
+$\frac{\delta v}{\delta \mu} = -1$
+$\frac{\delta u}{\delta v}  = 2v\alpha^{-2}$
+$\frac{\delta}{\delta u} = -\sum(-\frac{\beta}{u}) $
+
+Resulting in
+$$\frac{\delta}{\delta\mu} = -\sum\frac{2\beta(x-\mu)}{\alpha^2 + (x-\mu)^2}$$
+A similar approach was used to take the partial derivative with respect to $\alpha$ and $\beta$.
+Resulting in
+$$\frac{\delta}{\delta\alpha} = -\sum-\frac{1}{\alpha} + \frac{2\beta(x-\mu)^2}{\alpha^3 + \alpha(x-\mu)^2}$$
+To obtain the partial derivative with respect to beta I will be using the Rcode of digamma
+$$\frac{\delta}{\delta\beta} = -\sum digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right]$$
+
+## 2D 
+The 2D Moffat Model has this form:
+
+$$f(x,y) = A\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
+Where A = amplitude, $x0$ = x-position of the maximum, $y0$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
+
+This is a symmetric uncorrelated function.
+
+Similarly to the 1D Moffat, the amplitude must be greater than 0. Alpha can't be equal to zero and Beta must be greater than 0.
+
+$$-\sum(\ln\left[A\right]-\beta\ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right]) $$
+Moffat Distribution:
+$$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
+Gradient of the negative log likelihood with respect to each parameter
+$$\frac{\delta}{\delta x_0} = -\sum\frac{2\beta(x-x_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$\frac{\delta}{\delta y_0} = -\sum\frac{2\beta(y-y_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
+$$ \frac{\delta}{\delta\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-x_0)^2 + (y-y_0)^2)}{\alpha^3 + \alpha((x-x_0)^2+(y-y_0)^2)})$$
+$$ \frac{\delta}{\delta\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right])$$
+
+
+
+## Spatial Mixture Models
+
+Creating a mixture model that uses two 2D moffat functions. 
+$$ f(z_j) = \sum^{2}_{i=1} \lambda_i f_i(z_j)$$
+Where $\lambda_i$ is the mixing proportion parameter and $f_i(z_j)$ are the component densities. Which in the case of a Moffat density looks like this.
+$$f_i(z_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
+The mixture model in full:
+$$ f(z_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
+Let $ v_i = 1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2} $
+Let $ c_i = \frac{(\beta_i-1)}{\pi\alpha_{i}^{2}} $
+
+$$ f(z_j) = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
+The Negative Log Likelihood:
+$$-\sum^{n}_{j=1}\ln\left[\lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}\right]$$
+To find the partial derivatives of the Negative Log Likelihood
+Throughout the derivations the chain rule, quotient rule and product rule are utilised
+Chain Rule: $\frac{\partial}{\partial x} = \frac{\partial}{\partial y} \frac{\partial y}{\partial x} $
+Quotient Rule: $\frac{\partial}{\partial x} = \frac{ v \frac{\partial u}{\partial x} - { u \frac{\partial v}{\partial x}}}{v^2} $
+Product Rule:  $\frac{\partial (uv)}{\partial x} = u \frac{\partial v}{\partial x} + { v \frac{\partial u}{\partial x}}$
+
+Let:
+$$ u = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2} $$
+
+For $\frac{\partial}{\partial x_1}$:
+
+$$\frac{\partial}{\partial x_1} = \frac{\partial}{\partial u} \frac{\partial u}{\partial v_1} \frac{\partial v_1}{\partial x_1}$$
+$$\frac{\partial}{\partial u} = -\sum\frac{1}{u}$$
+$$\frac{\partial u}{\partial v_1} = - \lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)}$$
+$$\frac{\partial v_1}{\partial x_1} = \frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}}$$
+$$\frac{\partial}{\partial x_1} = -\sum\frac{1}{u} (-\lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)})(\frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}})$$
+Simplifying to:
+$$\frac{\partial}{\partial x_1} = -\sum\frac{2\lambda_1 c_1 \beta_1(x_j - \bar{x}_1)}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
+
+A similar method is used to find the partial derivative with respect to $\bar{x}_2$, $\bar{y}_1$ and $\bar{y}_2$.
+
+$$\frac{\partial}{\partial x_2} = -\sum\frac{2\lambda_2 c_2 \beta_2(x_j - \bar{x}_2)}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
+$$\frac{\partial}{\partial y_1} = -\sum\frac{2\lambda_1 c_1 \beta_1(y_j - \bar{y}_1)}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
+
+$$\frac{\partial}{\partial y_2} = -\sum\frac{2\lambda_2 c_2 \beta_2(y_j - \bar{y}_2)}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
+For the partial derivative with respect to $\lambda_1$.
+$$\frac{\partial u}{\partial \lambda_1} = c_1  v_{1}^{-\beta_1}$$
+$$\frac{\partial}{\partial \lambda_1} = -\sum\frac{c_1 v_{1}^{-\beta_1}}{u}$$
+Similarly for $\lambda_2$
+$$\frac{\partial}{\partial \lambda_2} = -\sum\frac{c_2 v_{2}^{-\beta_2}}{u}$$
+
+For the partial derivative with respect to $\alpha_1$
+Let $w_1 = \frac{\lambda_1(\beta_1 -1)}{\pi}\alpha_{1}^{-2}$
+Let $d_1 = v_1^{-\beta_1}$
+So $u = wd$
+Apply the product rule.
+
+$w_1' = -2\frac{\lambda_1(\beta_1 - 1)}{\pi}\alpha_{1}^{-3}$
+
+To find d' the quotient and chain rules are applied
+$$d_1' = \frac{2 \beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1^{\beta_1 +1}\alpha_1^3}$$
+
+This can be simplified:
+$$d_1' = \frac{2 \beta_1}{v_1^{\beta_1 +1}\alpha_1} \frac{\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{\alpha_1^2}$$
+$$ = \frac{2 \beta_1}{v_1^{\beta_1} v_1 \alpha_1} v_1$$
+$$ = \frac{2 \beta_1}{v_1^{\beta_1}\alpha_1}$$
+Leading to:
+$$\frac{\partial u}{\partial \alpha_1} = \frac{\lambda_1(\beta_1 -1)}{\pi\alpha_{1}^{2}} \frac{2 \beta_1}{v_1^{\beta_1}\alpha_1} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{3}} \frac{1}{v_1^{\beta_1}}$$
+This can be simplified:
+$$\frac{\partial u}{\partial \alpha_1} = \frac{2 \lambda_1 \beta_1 (\beta_1 -1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} $$
+$$ = \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} (\beta_1 + 1)$$
+$$ = \frac{2 \lambda_1(\beta_1^2 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}}$$
+
+Resulting in:
+$$\frac{\partial}{\partial \alpha_1} = -\sum \frac{2 \lambda_1(\beta_1^2 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3} u}$$
+
+Similarly for $\alpha_2$
+$$\frac{\partial}{\partial \alpha_2} = -\sum \frac{2 \lambda_2(\beta_2^2 - 1)}{\pi v_2^{\beta_2} \alpha_{2}^{3} u}$$
+
+For the partial derivative with respect to $\beta_1$.
+Rearrange the initial equation and
+Let $s_i = \frac{\lambda_i}{\pi\alpha_{i}^{2}}$
+
+$u = sv_{1}^{-\beta_1}(\beta_1 - 1)$
+$$ u = sv_{1}^{-\beta_1}\beta_1 - sv_{1}^{-\beta_1}$$
+
+The Product rule is employed to find the derivative of the first term.
+$$\frac{\partial u}{\partial \beta_1} = -s_1 \beta_1 v_{1}^{-\beta_1} \ln(v_1) + s_1 v_1^{-\beta_1} + s_1 v_1^{-\beta_1}\ln(v_1)$$
+$$\frac{\partial u}{\partial \beta_1} = s_1 v_1^{-\beta_1} (1 + \ln(v_1) - \beta_1 \ln(v_1))$$
+
+$$\frac{\partial}{\partial \beta_1} = -\sum \frac{s_1 v_1^{-\beta_1} (1 + \ln(v_1) - \beta_1 \ln(v_1))}{u}$$
+Similarly for $\beta_2$
+$$\frac{\partial}{\partial \beta_2} = -\sum \frac{s_2 v_2^{-\beta_2} (1 + \ln(v_2) - \beta_2 \ln(v_2))}{u}$$
