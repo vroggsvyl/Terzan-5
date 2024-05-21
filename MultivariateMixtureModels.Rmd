@@ -51,6 +51,9 @@ ggplot(interestArea,aes(x,y)) +
 interestArea2 <- T5 %>%
   filter(x>4105 & x<4135 & y>4160 & y<4190)
 
+  interestArea3 <- T5 %>%
+  filter(x>4125 & x<4150 & y>4075 & y<4100)
+
 ggplot(interestArea2,aes(x,y)) + 
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
