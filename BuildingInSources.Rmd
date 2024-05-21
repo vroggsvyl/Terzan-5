@@ -896,6 +896,8 @@ MMresult5 <- optim(par = initialParams5, fn = MM5MOFFAT, x = interestArea3$x, y 
 
 MMresult5
 out5 <- MMresult5$par
+
+out5[[1]] + out5[[6]] + out5[[11]] + out5[[16]]
 ```
 ```{r}
 #params
