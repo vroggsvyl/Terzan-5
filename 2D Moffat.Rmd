@@ -81,6 +81,7 @@ dummyParams <- c(amplitude = 1, x0 = 0, y0 = 0, alpha = 1, beta = 1)
 z <- Moffat2D(grid, dummyParams)
 zMatrix <- matrix(z, nrow = length(xRange), ncol = length(yRange))
 
+par(pty = "s")
 image(xRange, yRange, zMatrix, xlab = "x", ylab = "y", main = "2D Moffat")
 persp(xRange, yRange, zMatrix, xlab = "x", ylab = "y", zlab = "f(x,y)", main = "2D Moffat")
 ```
@@ -414,73 +415,37 @@ Moffat2DPDF(optimPOI2Par, 4115.26, 4051.90)
 ```
 
 ```{r}
-xRange <- seq(4110, 4120, length = 100)
-yRange <- seq(4045, 4055, length = 100)
+xRange <- seq(4105, 4125, length = 200)
+yRange <- seq(4040, 4060, length = 200)
 grid <- expand.grid(x = xRange, y = yRange)
 
 amplitude <- (optimPOI2Par[[4]]-1)/(pi*optimPOI2Par[[3]]^2)
-#amplitude
 parameters <- c(amplitude, optimPOI2Par)
 
 zPOI2<- Moffat2D(grid, parameters)
 zPOI2Matrix <- matrix(zPOI2, nrow = length(xRange), ncol = length(yRange))
 par(pty = "s")
 image(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
-```
 
-```{r}
-xRange <- seq(4110, 4120, length = 100)
-yRange <- seq(4045, 4055, length = 100)
-data <- expand.grid(x = xRange, y = yRange)
+contours <- ggplot(grid, aes(x = x, y = y)) + 
+  stat_contour(aes(z = zPOI2), bins = 40) 
+
+contours
 
 model <- ggplot(POI2, aes(x,y)) +
   geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) +
   theme(legend.position = "none")
 
-contours <- ggplot(data, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zPOI2), bins = 10) 
+model
 
-ggMarginal(model, type = "histogram")
-contours
-```
-```{r}
 contourData <- ggplot_build(contours)$data[[1]]
 
 combined <- model + geom_path(data = contourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 
 combined
 ```
-Zooming in on this point of interest to try to get a clearer picture.
-```{r}
-#refiltering the POI2
-POI2ZOOM <- POI2 %>%
-  filter(x>4110 & x<4120 & y>4048 & y<4058)
 
-#creating a point density plot
-modelZoomedInPOI2 <- ggplot(POI2ZOOM, aes(x,y)) +
-  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
-  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
-  coord_fixed()
-
-contourData <- ggplot_build(contours)$data[[1]]
-
-#combining the contour plot and the point density plot
-combined <- modelZoomedInPOI2 + geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[5], alpha = 1, linewidth= 0.3)
-
-#viewing
-ggMarginal(combined, type = "histogram")
-
-#plotting contours on the raw data
-ggplot(POI2ZOOM, aes(x,y)) +
-  geom_point(size = 0.2) + 
-  geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
-  coord_fixed()
-```
-Alternate zoom method
-```{r}
-combined + coord_cartesian(xlim = c(4110, 4120), ylim = c(4048, 4058))
-```
 
 I would like to display the Marginal PDF's of the model.
 $$f_X(x) = \int_{-\infty}^{\infty} f_{XY}(x,y) dy$$
@@ -573,6 +538,7 @@ margY
 histX
 histY
 ```
+
 ```{r}
 xRange <- seq(4105, 4125, length = 200)
 yRange <- seq(4040, 4060, length = 200)
@@ -609,6 +575,8 @@ histogramWithMarginalY
 
 plot_grid(histogramWithMarginalX, NULL, combined, histogramWithMarginalY, ncol = 2, align = "hv", rel_widths = c(2, 1), rel_heights = c(1, 2), axis = c("l", "b"))
 ```
+
+
 
 ```{r}
 celestialSource1 <- T5 %>%
