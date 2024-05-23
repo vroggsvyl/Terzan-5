@@ -24,6 +24,9 @@ ggplot(T5,aes(x,y)) +
 interestArea <- T5 %>%
   filter(x>4100 & x<4140 & y>4035 & y<4075)
 
+interestArea2 <- T5 %>%
+  filter(x>4105 & x<4135 & y>4160 & y<4190)
+
 interestArea3 <- T5 %>%
   filter(x>4120 & x<4150 & y>4080 & y<4102)
 
@@ -474,13 +477,6 @@ contours <- ggplot(grid, aes(x = x, y = y)) +
   coord_fixed()
 
 contours
-
-interestAreaModel <- ggplot(interestArea, aes(x = x, y = y)) +
-  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") +
-  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) +
-  coord_fixed()
-
-interestAreaModel
 
 MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
 MMcombined <- interestAreaModel + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)

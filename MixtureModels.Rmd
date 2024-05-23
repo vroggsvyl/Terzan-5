@@ -45,6 +45,7 @@ ggplot(interestArea,aes(x,y)) +
   scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(4, 16, 64)) + 
   coord_fixed()
 ```
+
 ```{r}
 interestAreaCS1 <- interestArea %>%
   filter(x>4110 & x<4120 & y>4047 & y<4057)
