@@ -686,7 +686,7 @@ upperbounds = c(1, 5000, 5000, Inf, Inf,
                 5000, 5000, Inf, Inf
                 )
 
-MMresult5 <- optim(par = initialParams5, fn = MM5MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds)#, control = list(trace = 6))
+MMresult5 <- optim(par = initialParams5, fn = MM5MOFFAT, x = interestArea$x, y = interestArea$y, method = "L-BFGS-B", lower = lowerbounds, upper = upperbounds, control = list(trace = 3, maxit = 300))
 
 MMresult5
 out5 <- MMresult5$par
@@ -708,7 +708,7 @@ contours5 <- ggplot(grid, aes(x = x, y = y)) +
   coord_fixed()
 
 contours5
-
+s
 interestAreaModel
 
 MMcontourData5 <- ggplot_build(contours5)$data[[1]] #extracting the contours (from the optimised function)

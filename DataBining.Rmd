@@ -36,6 +36,156 @@ BINdensities
 ```
 
 ```{r}
+xbins <- seq(4100.5, 4139.5, length = 40)
+ybins <- seq(4035.5, 4074.5, length = 40)
 
+xbins
+ybins
+
+binGrid <- expand.grid(xbins, ybins)
+head(binGrid)
+```
+
+```{r}
+BINSMM5MOFFAT <- function(params, x, y){
+  #component density 1
+  lambda1 <- params[[1]]
+  x1 <- params[[2]]
+  y1 <- params[[3]]
+  alpha1 <- params[[4]]
+  beta1 <- params[[5]]
+  
+  #component density 2
+  lambda2 <- params[[6]]
+  x2 <- params[[7]]
+  y2 <- params[[8]]
+  alpha2 <- params[[9]]
+  beta2 <- params[[10]]
+  
+  #component density 3
+  lambda3 <- params[[11]]
+  x3 <- params[[12]]
+  y3 <- params[[13]]
+  alpha3 <- params[[14]]
+  beta3 <- params[[15]]
+  
+  #component density 4
+  lambda4 <- params[[16]]
+  x4 <- params[[17]]
+  y4 <- params[[18]]
+  alpha4 <- params[[19]]
+  beta4 <- params[[20]]
+  
+  #component density 5
+  x5 <- params[[21]]
+  y5 <- params[[22]]
+  alpha5 <- params[[23]]
+  beta5 <- params[[24]]
+  
+  lambda5 <- 1 - lambda1 - lambda2 - lambda3 - lambda4
+  
+  
+  #common terms
+  c1 <- (beta1 - 1)/(pi*alpha1^2)
+  c2 <- (beta2 - 1)/(pi*alpha2^2)
+  c3 <- (beta3 - 1)/(pi*alpha3^2)
+  c4 <- (beta4 - 1)/(pi*alpha4^2)
+  c5 <- (beta5 - 1)/(pi*alpha5^2)
+  
+  v1 <- 1+(((x-x1)^2+(y-y1)^2)/alpha1^2)
+  v2 <- 1+(((x-x2)^2+(y-y2)^2)/alpha2^2)
+  v3 <- 1+(((x-x3)^2+(y-y3)^2)/alpha3^2)
+  v4 <- 1+(((x-x4)^2+(y-y4)^2)/alpha4^2)
+  v5 <- 1+(((x-x5)^2+(y-y5)^2)/alpha5^2)
+  
+  Density <- lambda1*c1*v1^(-beta1) + lambda2*c2*v2^(-beta2) + lambda3*c3*v3^(-beta3) + lambda4*c4*v4^(-beta4) + lambda5*c5*v5^(-beta5)
+  
+  return(Density)
+}
+```
+
+```{r}
+optDens <- BINSMM5MOFFAT(out5, x = binGrid[,1], y = binGrid[,2])
+head(optDens)
+```
+
+```{r}
+BINdiff <- BINdensities - optDens
+
+BINdiffDF <- as.data.frame(matrix(BINdiff, nrow = 40, ncol = 40, byrow = TRUE, dimnames = list(ybins, xbins))) 
+
+sum(BINdiff[1:40])
+sum(BINdiffDF[1,])
+
+head(BINdiffDF)
+```
+
+```{r}
+longDIFF <- BINdiffDF %>%
+  rownames_to_column(var = "ybins") %>%
+  pivot_longer(col = -ybins, names_to = "xbins", values_to = "value")
+
+xLabels <- levels(factor(longDIFF$xbins))[seq(1, 40, by = 5)]
+yLabels <- levels(factor(longDIFF$ybins))[seq(1, 40, by = 5)]
+
+binDIFF <- ggplot(longDIFF, aes(x = xbins, y = ybins, fill = value)) +
+  geom_tile() +
+  scale_x_discrete(breaks = xLabels) +
+  scale_y_discrete(breaks = yLabels) +
+  labs(x = "x", y = "y", title = "Difference between Binned Data and Mixture Model ") +
+  coord_fixed()
+
+binDIFF
+```
+
+more bins
+```{r}
+#BINNING the row data into 80 by 80
+bin2IAnorm <- ggplot(interestArea, aes(x = x, y = y)) +
+  geom_bin2d(binwidth = c(0.5, 0.5), aes(weight = nrow(interestArea)), drop = FALSE) +
+  coord_fixed()
+
+bin2IAnorm
+
+ggplot_build(bin2IAnorm)$data[[1]]
+
+BINdensities2 <- ggplot_build(bin2IAnorm)$data[[1]]$density
+BINdensities2
+
+#obtaining values for the model
+xbins2 <- seq(4100.25, 4139.75, length = 80)
+ybins2 <- seq(4035.25, 4074.75, length = 80)
+
+binGrid2 <- expand.grid(xbins2, ybins2)
+head(binGrid2)
+
+optDens2 <- BINSMM5MOFFAT(out5, x = binGrid2[,1], y = binGrid2[,2])
+
+#Finding the difference between the BINNED data and the model, convert to a dataframe
+BINdiff2 <- BINdensities2 - optDens2
+
+BINdiffDF2 <- as.data.frame(matrix(BINdiff2, nrow = 80, ncol = 80, byrow = TRUE, dimnames = list(ybins2, xbins2))) 
+
+sum(BINdiff2[1:80])
+sum(BINdiffDF2[1,])
+
+head(BINdiffDF2)
+
+#Visualising
+longDIFF2 <- BINdiffDF2 %>%
+  rownames_to_column(var = "ybins") %>%
+  pivot_longer(col = -ybins, names_to = "xbins", values_to = "value")
+
+xLabels2 <- levels(factor(longDIFF2$xbins))[seq(1, 80, by = 10)]
+yLabels2 <- levels(factor(longDIFF2$ybins))[seq(1, 80, by = 10)]
+
+binDIFF2 <- ggplot(longDIFF2, aes(x = xbins, y = ybins, fill = value)) +
+  geom_tile() +
+  scale_x_discrete(breaks = xLabels2) +
+  scale_y_discrete(breaks = yLabels2) +
+  labs(x = "x", y = "y", title = "Difference between Binned Data and Mixture Model ") +
+  coord_fixed()
+
+binDIFF2
 ```
 
