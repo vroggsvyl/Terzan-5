@@ -126,6 +126,14 @@ RAWPOI2 +
   geom_hline(yintercept = 4052.5) +
   geom_hline(yintercept = 4053.5) +
   geom_hline(yintercept = 4054.5)
+
+RAWPOI2 +
+  geom_hline(yintercept = 4049.5) +
+  geom_hline(yintercept = 4050.5, colour = "red") + 
+  geom_hline(yintercept = 4051.5, colour = "red") + 
+  geom_hline(yintercept = 4052.5) +
+  geom_hline(yintercept = 4053.5) +
+  geom_hline(yintercept = 4054.5)
 ```
 ## 1D Distribution Fitting
 Here is a histogram of the data that I would like to try and model.
@@ -171,7 +179,7 @@ Overlay the plot of the normal distribution with the optimised parameters on the
 optimParameters2N <- gaussian_density(optimized_parameters, xl2)
 
 histWithNormL2 <- histLine2 +
-  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian density"), linewidth=1.2) +
+  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian distribution"), linewidth=1.2) +
   ylab("p(x)") + 
   scale_colour_manual("Legend", values = cbPalette) +
   theme(legend.position = "inside",
@@ -358,8 +366,9 @@ ggplot() +
   stat_function(fun = MOFFAT, n = 1000, args = list(mu = mu1, alpha = alpha1, beta = beta1), aes(colour = String1)) +
   stat_function(fun = MOFFAT, n = 1000, args = list(mu = mu2, alpha = alpha2, beta = beta2), aes(colour = String2)) +
   stat_function(fun = MOFFAT, n = 1000, args = list(mu = mu3, alpha = alpha3, beta = beta3), aes(colour = String3)) +
+  xlab("x") + ylab("p(x)") +
   xlim(-20, 20) + ylim(0, NA) +
-  scale_colour_manual("Moffat Models", values = cbPalette) +
+  scale_colour_manual("Moffat Distributions", values = cbPalette) +
   theme(legend.position = "inside",
     legend.justification = c("left"),
     legend.margin = margin(6, 6, 6, 6))
