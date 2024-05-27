@@ -885,8 +885,8 @@ interestAreaModel3
 
 MMcontourData3.5 <- ggplot_build(contours5)$data[[1]] #extracting the contours (from the optimised function)
 MMcombined <- interestAreaModel3 + 
-  geom_path(data = MMcontourData3.5, aes(x = x, y = y, group = group), color = "green", alpha = 0.5) +
-  geom_path(data = MMcontourData3.3, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5)
+  geom_path(data = MMcontourData3.5, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5)
+
 MMcombined
 ```
 
@@ -1137,8 +1137,8 @@ interestAreaModel3
 
 MMcontourData3.6 <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
 MMcombined <- interestAreaModel3 + 
-  geom_path(data = MMcontourData3.6, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5) #+
-  # geom_path(data = MMcontourData3.5, aes(x = x, y = y, group = group), color = "green", alpha = 0.5) +
+  geom_path(data = MMcontourData3.6, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5) +
+   geom_path(data = MMcontourData3.5, aes(x = x, y = y, group = group), color = "red", alpha = 0.5) #+
   # geom_path(data = MMcontourData3.3, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5) +
   # geom_path(data = MMcontourData3.2, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 MMcombined
@@ -1334,7 +1334,7 @@ contours <- ggplot(grid, aes(x = x, y = y)) +
 contours
 
 MMcontourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from the optimised function)
-MMcombined <- InterestArea4Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+MMcombined <- InterestArea4Model + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5)
 
 InterestArea4Model
 MMcombined
@@ -1343,7 +1343,7 @@ RAW4 <- ggplot(interestArea4,aes(x,y)) +
   geom_point(size = 0.5) +
   coord_fixed()
 
-RAW4 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
+RAW4 + geom_path(data = MMcontourData, aes(x = x, y = y, group = group), color = "blue", alpha = 0.5)
 ```
 
 ```{r}
