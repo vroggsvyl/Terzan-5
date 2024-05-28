@@ -209,9 +209,12 @@ ks.test(x = line2$x, y = "pnorm")
 require no ties in the data
 ```{r}
 noTiesL2 <- unique(xl2)
-ks.test(x = noTiesL2, y = "pnorm")
+sortNTL2 <- sort(noTiesL2)
+ks.test(x = sortNTL2, y = "pnorm")
 ```
 Strongly rejects the null hypothesis
+
+
 
 Anderson Darling Test:
 ```{r}
@@ -266,9 +269,12 @@ ggplot() +
   scale_colour_manual("Moffat Models", values = cbPalette) +
   theme(legend.position = "inside",
     legend.justification = c("left"),
-    legend.margin = margin(6, 6, 6, 6))
+    legend.margin = margin(6, 6, 6, 6)) +
+  labs(x = "x", y = "p(x)")
 
 ```
+
+
 Trying to use the optim function to estimate the parameters of the Moffat Model when fitted to the data.
 ```{r}
 Moffat <- function(parameters, x){
@@ -405,7 +411,6 @@ ggplot() +
     legend.margin = margin(6, 6, 6, 6))
 ```
 
-
 The optim function has two requirements. The first is a function that it sets out to minimize. For this I will use the Negative Log Likelihood of the function. The second requirement is the gradient of the function that is being minimized. For this I will take the partial derivative of the Negative Log Likelihood with respect to each parameter. 
 
 To obtain the Negative Log Likelihood.
@@ -470,7 +475,7 @@ derivMOFFATPDF <- function(parameters, x){
 Optimising the parameters for line 2
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
-lowerBOUNDS <- c(0, 1e-6, 1.5)
+lowerBOUNDS <- c(0, 1e-6, 0.5)
 
 RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDF, x = xl2, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR2 <- RESULT$par
@@ -500,8 +505,8 @@ The QQ-plot should compare the the quantiles from the data to the quantiles of t
 Here is the quantiles from the data.
 ```{r}
 quantile(sortNTL2)
-
 ```
+
 Now i need to calculate the quantiles of the create 1D Moffat model.
 In order to find the quantiles, I will use interpolation.
 
@@ -547,12 +552,25 @@ A P-P plot  is used for assessing how close a dataset fits to a particular model
 The two cumulative distribution functions are plotted against each other. 
 
 ```{r}
+xRange <- seq(4105, 4125, length = 100)
+MCDF <- function(x){
+
+   return(integrate(MOFFATPDF, lower = 4100, upper = x, parameters = optimPAR2)$value)
+}
+
+VMCDF <- Vectorize(MCDF, vectorize.args = "x")
+VMCDF(x = 4115:4225)
+```
+
+
+```{r}
 xRANGE <- seq(4105, 4125, length = length(sortNTL2))
 model <- VMCDF(xRANGE) #this represents the cumulative distribution of the 1D moffat distribution 
 plot(x = xRANGE, y = model)
 dataset <- ecdf(sortNTL2)#this represents the cumulative distribution of the dataset
 plot(dataset)
 ```
+
 Figure 2.3.5
 ```{r}
 thereoticalProbs <- model
@@ -598,29 +616,6 @@ lines(CDF[,1], CDF[,2], type = "l", col = cbPalette[7], lwd = 2)
 ```
 
 ```{r}
-ks.test(x = noTiesL2, y = MOFFATCDF)
-```
-tweak 
-```{r}
-xRange <- seq(4105, 4125, length = 100)
-MCDF <- function(x){
-
-   return(integrate(MOFFATPDF, lower = 4100, upper = x, parameters = optimPAR2)$value)
-}
-
-VMCDF <- Vectorize(MCDF, vectorize.args = "x")
-VMCDF(x = 4115:4225)
-```
-
-```{r}
-#ordering the data
-sortNTL2 <- sort(noTiesL2)
-#sortNTL2
-#MCDF(xRange = sortNTL2, pdf = MOFFATPDF)
-```
-
-
-```{r}
 ks.test(x = sortNTL2, y = VMCDF)
 ```
 
@@ -643,7 +638,7 @@ Figure 2.4.1
 ```{r}
 ggplot(line2) +
   geom_histogram(aes(x, y = after_stat(density), colour = "data"), bins = 50, fill=cbPalette[5]) +
-  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="gaussian density"), linewidth=1.2) +
+  stat_function(fun = gaussian_density, args = list(parameters = optimized_parameters), n=1000, aes(colour="Normal PDF"), linewidth=1.2) +
   stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR2), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
   ylab("p(x)") + 
   scale_colour_manual("Legend", values = cbPalette) +
@@ -676,7 +671,7 @@ Lineback is purely the cosmic background.
 Line 1
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
-lowerBOUNDS <- c(0, 1e-6, 1.5)
+lowerBOUNDS <- c(0, 1e-6, 0.5)
 
 RESULT <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDF, x = line1$x, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR1 <- RESULT$par
@@ -700,7 +695,7 @@ ggplot(line1) +
 line 3
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
-lowerBOUNDS <- c(0, 1e-6, 1.5)
+lowerBOUNDS <- c(0, 1e-6, 0.5)
 
 RESULT3 <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDF, x = line3$x, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR3 <- RESULT3$par
@@ -725,7 +720,7 @@ ggplot(line3) +
 Line 4
 ```{r}
 initialGUESS <- c(mu = 4115, alpha = 1, beta = 4)
-lowerBOUNDS <- c(0, 1e-6, 1.5)
+lowerBOUNDS <- c(0, 1e-6, 0.5)
 
 RESULT4 <- optim(par = initialGUESS, fn = NLL, gr = derivMOFFATPDF, x = line4$x, method = "L-BFGS-B", lower = lowerBOUNDS)
 optimPAR4 <- RESULT4$par

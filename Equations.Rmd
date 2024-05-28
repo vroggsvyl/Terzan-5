@@ -21,75 +21,142 @@ First I take the Likelihood of the parameters of f(x).
 $$L(x; \mu, \alpha, \beta) = \prod f(x)$$
 Next I take the log of the likelihood and apply the log law
 $ln\left[ab\right] = ln\left[a\right]+ln\left[b\right]$.
+
 $$ln\left[L(x; \mu, \alpha, \beta)\right] = \sum(ln\left[f(x)\right])$$
 Taking the negative of this yields the Negative Log Likelihood.
 Let NLL = Negative Log Likelihood
 
 $$NLL = -\sum\ln\left[\frac{\Gamma(\beta)}{\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})} \left[1+\frac{(x-\mu)^2}{\alpha^2}\right]^{-\beta}\right]$$
-By applying more log laws, this can be expanded
 
+By applying more log laws, this can be expanded.
+Let b = $\Gamma(\beta)$
+Let c = $\alpha\sqrt\pi~\Gamma(\beta-\frac{1}{2})$
+Let d = $\left[1+\frac{(x-\mu)^2}{\alpha^2}\right]$
+
+$$ NLL =  -\sum\ln\left[\frac{b}{c}d^{-\beta}\right]$$
+
+$ln\left[\frac{b}{c}d^{-\beta}\right] = ln\left[\frac{b}{c}\right]+ln\left[d^{-\beta}\right]$.
+$ln\left[\frac{b}{c}\right] = ln\left[b\right]-ln\left[c\right]$.
+$ln\left[d\right]^{-\beta} = -\beta\ln\left[a\right]$.
+
+$$ = -\sum( \ln\left[b\right] - \ln\left[c\right] + \ln\left[d^{-\beta}])$$
+c can be split into two parts
+Let k = $\alpha\sqrt\pi$
+Let l = $\Gamma(\beta-\frac{1}{2})$
+
+$$ = -\sum( \ln\left[b\right] - (\ln\left[k\right] + \ln\left[l\right]) -\beta\ln\left[d])$$
+Substituting the parameters back in.
 
 $$NLL = -\sum(\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right])$$
+In this form it is easier to find the partial derivatives.
+
 
 In order to take the partial derivative with respect to $\mu$ I utilised the chain rule.
-Let $ u = \left[1+v^2\alpha^{-2}\right] $.
-Let $ v = x - \mu $
-$\frac{\delta}{\delta\mu} = \frac{\delta}{\delta u} \frac{\delta u}{\delta v} \frac{\delta v}{\delta \mu}$
-$\frac{\delta v}{\delta \mu} = -1$
-$\frac{\delta u}{\delta v}  = 2v\alpha^{-2}$
-$\frac{\delta}{\delta u} = -\sum(-\frac{\beta}{u}) $
+$\frac{\partial}{\partial\mu} = \frac{\partial}{\partial u} \frac{\partial u}{\partial v} \frac{\partial v}{\partial \mu}$
+
+Let u = $\left[1+\frac{(x-\mu)^2}{\alpha^2}\right]$
+
+Let v = $(x - \mu)$
+$\frac{\partial v}{\partial \mu} = -1$
+
+u = $\left[1+\frac{v^2}{\alpha^2}\right]$
+$\frac{\partial u}{\partial v}  = 2v\alpha^{-2} = \frac{2(x - \mu)}{\alpha^{-2}}$
+
+NLL = $\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[u \right]$ 
+
+$\frac{\partial }{\partial u} = -\sum-\frac{\beta}{u} = -\sum\left[-\frac{\beta}{1+\frac{v^2}{\alpha^2}}\right]$
 
 Resulting in
-$$\frac{\delta}{\delta\mu} = -\sum\frac{2\beta(x-\mu)}{\alpha^2 + (x-\mu)^2}$$
-A similar approach was used to take the partial derivative with respect to $\alpha$ and $\beta$.
-Resulting in
-$$\frac{\delta}{\delta\alpha} = -\sum-\frac{1}{\alpha} + \frac{2\beta(x-\mu)^2}{\alpha^3 + \alpha(x-\mu)^2}$$
-To obtain the partial derivative with respect to beta I will be using the Rcode of digamma
-$$\frac{\delta}{\delta\beta} = -\sum digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right]$$
+
+$$\frac{\partial}{\partial\mu} = -\sum(-\frac{\beta}{1+\frac{(x - \mu)^2}{\alpha^2}} \frac{2(x - \mu)}{\alpha^2}\times{-1})$$
+$$\frac{\partial}{\partial\mu} = -\sum\frac{2\beta(x-\mu)}{\alpha^2 + (x-\mu)^2}$$
+
+
+To take the partial derivative with respect to $\alpha$ it is slightly more complex, as $\alpha$ exists twice within the Negative Log Likelihood. However, we can find the derivative to the two parts seperately.
+
+Let u = $\left[1+\frac{(x-\mu)^2}{\alpha^2}\right]$
+
+$\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[u \right]$
+
+Taking out $(\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right])$
+The partial derivative with respect to $\alpha$ here is 
+$\frac{1}{-\alpha}$.
+
+For $-\beta\ln\left[u\right]$
+u = $\left[1+(x-\mu)^2\alpha^{-2}\right]$
+$\frac{\partial u}{\partial \alpha}  = 2(x - \mu)^2\alpha^{-3}$
+
+$\frac{\partial}{\partial u}  = -\frac{\beta}{u} = \frac{\beta}{\left[1+(x-\mu)^2\alpha^{-2}\right]}$
+
+
+Combined this becomes
+$$\frac{\partial}{\partial\alpha} = -\sum(-\frac{1}{\alpha} + \frac{\beta}{\left[1+(x-\mu)^2\alpha^{-2}\right]}\times\frac{2(x - \mu)^2}{\alpha^{3}}$$
+
+$$\frac{\partial}{\partial\alpha} = -\sum(-\frac{1}{\alpha} + \frac{2\beta(x-\mu)^2}{\alpha^3 + \alpha(x-\mu)^2})$$
+
+
+To obtain the partial derivative with respect to beta, make use of the digamma function in R.
+$\frac{\partial}{\partial\beta} \ln\left[\Gamma(\beta)\right] = \frac{\Gamma'(\beta)}{\Gamma(\beta)}$ = digamma($\beta$)
+
+$$\frac{\partial}{\partial\beta} = -\sum (digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right])$$
 
 ## 2D 
 The 2D Moffat Model has this form:
 
-$$f(x,y) = A\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
-Where A = amplitude, $x0$ = x-position of the maximum, $y0$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
+$$f(x,y) = A\left[1 + \frac{(x-\bar{x_0})^2 + (y - \bar{y_0})^2}
+{\alpha^2}\right]^{-\beta} $$
+
+Where A = amplitude, $\bar{x_0}$ = x-position of the maximum, $\bar{y_0}$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
 
 This is a symmetric uncorrelated function.
 
 Similarly to the 1D Moffat, the amplitude must be greater than 0. Alpha can't be equal to zero and Beta must be greater than 0.
 
-$$-\sum(\ln\left[A\right]-\beta\ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right]) $$
+$$-\sum(\ln\left[A\right]-\beta\ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}
+{\alpha^2}\right]) $$
+
+
+This two must be converted to the moffat distribution:
+
 Moffat Distribution:
-$$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-x_{0})^2 + (y - y_{0})^2}{\alpha^2}\right]^{-\beta} $$
+$$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-\bar{x_0})^2 + (y - \bar{\bar{y_0}})^2}
+{\alpha^2}\right]^{-\beta} $$
+
 Gradient of the negative log likelihood with respect to each parameter
-$$\frac{\delta}{\delta x_0} = -\sum\frac{2\beta(x-x_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
-$$\frac{\delta}{\delta y_0} = -\sum\frac{2\beta(y-y_0)}{\alpha^2+(x-x_0)^2+(y-y_0)^2}$$
-$$ \frac{\delta}{\delta\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-x_0)^2 + (y-y_0)^2)}{\alpha^3 + \alpha((x-x_0)^2+(y-y_0)^2)})$$
-$$ \frac{\delta}{\delta\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-x_0)^2 + (y-y_0)^2}{\alpha^2}\right])$$
+$$\frac{\partial}{\partial \bar{x_0}} = -\sum\frac{2\beta(x-\bar{x_0})}{\alpha^2+(x-\bar{x_0})^2+(y-\bar{y_0})^2}$$
+
+$$\frac{\partial}{\partial \bar{y_0}} = -\sum\frac{2\beta(y-\bar{y_0})}{\alpha^2+(x-\bar{x_0})^2+(y-\bar{y_0})^2}$$
+
+
+$$ \frac{\partial}{\partial\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-\bar{x_0})^2 + (y-\bar{y_0})^2)}{\alpha^3 + \alpha((x-\bar{x_0})^2+(y-\bar{y_0})^2)})$$
+
+
+$$ \frac{\partial}{\partial\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}\right])$$
 
 
 
 ## Spatial Mixture Models
 
 Creating a mixture model that uses two 2D moffat functions. 
-$$ f(z_j) = \sum^{2}_{i=1} \lambda_i f_i(z_j)$$
-Where $\lambda_i$ is the mixing proportion parameter and $f_i(z_j)$ are the component densities. Which in the case of a Moffat density looks like this.
-$$f_i(z_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
+$$ f(x_j, y_j) = \sum^{2}_{i=1} \lambda_i f_i(x_j, y_j)$$
+Where $\lambda_i$ is the mixing proportion parameter and $f_i(x_j, y_j)$ are the component densities. Which in the case of a Moffat density looks like this.
+$$f_i(x_j, y_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
 The mixture model in full:
-$$ f(z_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
-Let $ v_i = 1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2} $
-Let $ c_i = \frac{(\beta_i-1)}{\pi\alpha_{i}^{2}} $
+$$ f(x_j, y_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
+Let $v_i$ = $1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}$
+Let $c_i$ = $\frac{(\beta_i-1)}{\pi\alpha_{i}^{2}}$
 
-$$ f(z_j) = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
+$$f(x_j, y_j) = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
 The Negative Log Likelihood:
 $$-\sum^{n}_{j=1}\ln\left[\lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}\right]$$
 To find the partial derivatives of the Negative Log Likelihood
 Throughout the derivations the chain rule, quotient rule and product rule are utilised
-Chain Rule: $\frac{\partial}{\partial x} = \frac{\partial}{\partial y} \frac{\partial y}{\partial x} $
-Quotient Rule: $\frac{\partial}{\partial x} = \frac{ v \frac{\partial u}{\partial x} - { u \frac{\partial v}{\partial x}}}{v^2} $
+Chain Rule: $\frac{\partial}{\partial x} = \frac{\partial}{\partial y} \frac{\partial y}{\partial x}$
+Quotient Rule: $\frac{\partial}{\partial x} = \frac{ v \frac{\partial u}{\partial x} - { u \frac{\partial v}{\partial x}}}{v^2}$
 Product Rule:  $\frac{\partial (uv)}{\partial x} = u \frac{\partial v}{\partial x} + { v \frac{\partial u}{\partial x}}$
 
 Let:
-$$ u = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2} $$
+$$u = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
 
 For $\frac{\partial}{\partial x_1}$:
 
