@@ -1,7 +1,9 @@
 ---
 title: "Terzan5"
-output: html_document
-date: '2023-09-28'
+output:
+  word_document: default
+  html_document: default
+date: "2023-09-28"
 ---
 
 ```{r setup, include=FALSE}

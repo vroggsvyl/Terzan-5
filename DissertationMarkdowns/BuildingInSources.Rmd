@@ -305,6 +305,9 @@ MM3result <- optim(par = initialParams, fn = MM3MOFFAT, x = interestArea$x, y = 
 MM3result
 out3 <- MM3result$par
 ```
+```{r}
+1-out3[[1]]-out3[[6]]
+```
 
 ```{r}
 xRange <- seq(4100, 4140, length = 200)
@@ -511,6 +514,8 @@ out4.2 <- MMresult4.2$par
 
 out4.2[[1]] + out4.2[[6]] + out4.2[[11]] 
 ```
+
+
 
 ```{r}
 opt4.2params <- c(out4.2[1:15],

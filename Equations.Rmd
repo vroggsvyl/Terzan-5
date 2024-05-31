@@ -39,12 +39,12 @@ $ln\left[\frac{b}{c}d^{-\beta}\right] = ln\left[\frac{b}{c}\right]+ln\left[d^{-\
 $ln\left[\frac{b}{c}\right] = ln\left[b\right]-ln\left[c\right]$.
 $ln\left[d\right]^{-\beta} = -\beta\ln\left[a\right]$.
 
-$$ = -\sum( \ln\left[b\right] - \ln\left[c\right] + \ln\left[d^{-\beta}])$$
+$$= -\sum( \ln\left[b\right] - \ln\left[c\right] + \ln\left[d^{-\beta}\right])$$
 c can be split into two parts
 Let k = $\alpha\sqrt\pi$
 Let l = $\Gamma(\beta-\frac{1}{2})$
 
-$$ = -\sum( \ln\left[b\right] - (\ln\left[k\right] + \ln\left[l\right]) -\beta\ln\left[d])$$
+$$= -\sum( \ln\left[b\right] - (\ln\left[k\right] + \ln\left[l\right]) -\beta\ln\left[d\right])$$
 Substituting the parameters back in.
 
 $$NLL = -\sum(\ln\left[\Gamma(\beta)\right] - (\ln\left[\alpha\sqrt\pi\right] + \ln\left[\Gamma(\beta-\frac{1}{2})\right]) - \beta\ln\left[1+\frac{(x-\mu)^2}{\alpha^2}\right])$$
@@ -101,6 +101,8 @@ $\frac{\partial}{\partial\beta} \ln\left[\Gamma(\beta)\right] = \frac{\Gamma'(\b
 $$\frac{\partial}{\partial\beta} = -\sum (digamma(\beta) - digamma(\beta - \frac{1}{2}) - \ln\left[1+\frac{(x-mu)^2}{alpha^2}\right])$$
 
 ## 2D 
+
+
 The 2D Moffat Model has this form:
 
 $$f(x,y) = A\left[1 + \frac{(x-\bar{x_0})^2 + (y - \bar{y_0})^2}
@@ -108,9 +110,14 @@ $$f(x,y) = A\left[1 + \frac{(x-\bar{x_0})^2 + (y - \bar{y_0})^2}
 
 Where A = amplitude, $\bar{x_0}$ = x-position of the maximum, $\bar{y_0}$ = y-position of the maximum, $\alpha$ = core width, $\beta$ = power index.
 
-This is a symmetric uncorrelated function.
+This is a radially symmetric uncorrelated function.
 
-Similarly to the 1D Moffat, the amplitude must be greater than 0. Alpha can't be equal to zero and Beta must be greater than 0.
+First I take the Likelihood of the parameters of f(x). 
+$$L(x,y; A, \bar{x_0}, \bar{y_0}, \alpha, \beta) = \prod f(x,y)$$
+Next I take the log of the likelihood and apply the log law
+
+$$ln\left[L(x,y; A, \bar{x_0}, \bar{y_0}, \alpha, \beta)\right] = \sum(ln\left[f(x)\right])$$
+Taking the negative of this yields the Negative Log Likelihood.
 
 $$-\sum(\ln\left[A\right]-\beta\ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}
 {\alpha^2}\right]) $$
@@ -122,28 +129,80 @@ Moffat Distribution:
 $$f(x,y) = \frac{\beta-1}{\pi\alpha^2}\left[1 + \frac{(x-\bar{x_0})^2 + (y - \bar{\bar{y_0}})^2}
 {\alpha^2}\right]^{-\beta} $$
 
+$$-\sum(\ln\left[\frac{\beta-1}{\pi\alpha^2}\right]-\beta\ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}
+{\alpha^2}\right]) $$
+
+$$-\sum(\ln\left[\beta-1\right] - \ln\left[\pi\alpha^2\right]-\beta\ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}
+{\alpha^2}\right]) $$
+
 Gradient of the negative log likelihood with respect to each parameter
+
+Utilise the chain rule
+Let u = $1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}$
+Let v = $(x-\bar{x_0})^2 + (y-\bar{y_0})^2$
+
+Used in many partial derivatives
+$\frac{\partial}{\partial u} = -\frac{\beta}{u} = -\frac{\beta}{1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}}$
+
+For $\bar{x_0}$:
+Let w = $x - \bar{x_0}$
+$\frac{\partial w}{\partial \bar{x_0}} = -1$
+
+v = $w^2 + (y-\bar{y_0})^2$
+$\frac{\partial v}{\partial w} = 2w$
+$\frac{\partial v}{\partial \bar{x_0}} = -2(x - \bar{x_0})$
+
+u = $1+\frac{v}{\alpha^2}$
+$\frac{\partial u}{\partial v} = \frac{1}{\alpha^{2}}$
+$\frac{\partial u}{\partial \bar{x_0}} = \frac{1}{\alpha^{2}}\times -2(x - \bar{x_0})$
+
+$-\frac{\beta}{1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}} \times \frac{-2(x - \bar{x_0})}{\alpha^{2}}$
+
+
 $$\frac{\partial}{\partial \bar{x_0}} = -\sum\frac{2\beta(x-\bar{x_0})}{\alpha^2+(x-\bar{x_0})^2+(y-\bar{y_0})^2}$$
+A similar method is used to find the partial derivative with respect to $\bar{y_0}$
 
 $$\frac{\partial}{\partial \bar{y_0}} = -\sum\frac{2\beta(y-\bar{y_0})}{\alpha^2+(x-\bar{x_0})^2+(y-\bar{y_0})^2}$$
+For the partial derivative with respect to $\alpha$. There's two components containing a value of $\alpha$.
+$\ln\left[\pi\alpha^2\right]$ and $-\beta\ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}\right]$
+
+For the first component:
+$$\frac{\partial}{\partial \alpha} = -\frac{2}{\alpha}$$
+For the second component:
+Recall:
+$\frac{\partial}{\partial u} = -\frac{\beta}{u} = -\frac{\beta}{1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}}$
+
+u = $1+\frac{v}{\alpha^2} = 1 + v\alpha^{-2}$
+$\frac{\partial u}{\partial \alpha} = -2\alpha^{-3} v = \frac{2v}{\alpha^3} = \frac{2(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^3}$
+
+$\frac{\partial}{\partial u} \times \frac{\partial u}{\partial \alpha} = -\frac{\beta}{1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}} \times \frac{2(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^3} = 2\frac{\beta((x-\bar{x_0})^2 + (y-\bar{y_0})^2)}{\alpha^3 + \alpha((x-\bar{x_0})^2+(y-\bar{y_0})^2)})$
 
 
+Combining the two parts
 $$ \frac{\partial}{\partial\alpha} = 2\sum(\frac{1}{\alpha} + \frac{\beta((x-\bar{x_0})^2 + (y-\bar{y_0})^2)}{\alpha^3 + \alpha((x-\bar{x_0})^2+(y-\bar{y_0})^2)})$$
 
+For the partial derivative with respect to $\beta$
+$-\sum(\ln\left[\beta-1\right] - \ln\left[\pi\alpha^2\right]-\beta\ln\left[u\right])$
+
+$\frac{\partial}{\partial\beta} = \frac{1}{\beta} - \ln\left[u\right]$
 
 $$ \frac{\partial}{\partial\beta} = -\sum(\frac{1}{\beta} - \ln\left[1+\frac{(x-\bar{x_0})^2 + (y-\bar{y_0})^2}{\alpha^2}\right])$$
 
-
-
 ## Spatial Mixture Models
+
+
+A spatial mixture model has the following form
+$$ f(x_j, y_j) = \sum^{n}_{i=1} \lambda_i f_i(x_j, y_j)$$
+Where $\sum\lambda_i = 1$
+$\lambda_i$ is the mixing proportion parameter and $f_i(x_j, y_j)$ are the component densities.
 
 Creating a mixture model that uses two 2D moffat functions. 
 $$ f(x_j, y_j) = \sum^{2}_{i=1} \lambda_i f_i(x_j, y_j)$$
-Where $\lambda_i$ is the mixing proportion parameter and $f_i(x_j, y_j)$ are the component densities. Which in the case of a Moffat density looks like this.
-$$f_i(x_j, y_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
+When using a 2D Moffat Distribution as a component density:
+$$f_i(x_j, y_j) = \frac{\beta_i-1}{\pi\alpha_i^2}\left[1 + \frac{(x_j-\bar{x_i})^2 + (y_j - \bar{y_i})^2}{\alpha_i^2}\right]^{-\beta_i} $$
 The mixture model in full:
 $$ f(x_j, y_j) = \lambda_1\frac{\beta_1-1}{\pi\alpha_1^2}\left[1 + \frac{(x_j-\bar{x}_{1})^2 + (y_j - \bar{y}_{1})^2}{\alpha_1^2}\right]^{-\beta_1} + \lambda_2\frac{\beta_2-1}{\pi\alpha_2^2}\left[1 + \frac{(x_j-\bar{x}_{2})^2 + (y_j - \bar{y}_{2})^2}{\alpha_2^2}\right]^{-\beta_2}$$
-Let $v_i$ = $1 + \frac{(x_j-\bar{x}_{i})^2 + (y_j - \bar{y}_{i})^2}{\alpha_i^2}$
+Let $v_i$ = $1 + \frac{(x_j-\bar{x_i})^2 + (y_j - \bar{y_i})^2}{\alpha_i^2}$
 Let $c_i$ = $\frac{(\beta_i-1)}{\pi\alpha_{i}^{2}}$
 
 $$f(x_j, y_j) = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
@@ -158,22 +217,22 @@ Product Rule:  $\frac{\partial (uv)}{\partial x} = u \frac{\partial v}{\partial 
 Let:
 $$u = \lambda_1 c_1 v_1^{-\beta_1} + \lambda_2 c_2 v_2^{-\beta_2}$$
 
-For $\frac{\partial}{\partial x_1}$:
+For $\frac{\partial}{\partial \bar{x_1}}$:
 
-$$\frac{\partial}{\partial x_1} = \frac{\partial}{\partial u} \frac{\partial u}{\partial v_1} \frac{\partial v_1}{\partial x_1}$$
+$$\frac{\partial}{\partial \bar{x_1}} = \frac{\partial}{\partial u} \frac{\partial u}{\partial v_1} \frac{\partial v_1}{\partial \bar{x_1}}$$
 $$\frac{\partial}{\partial u} = -\sum\frac{1}{u}$$
 $$\frac{\partial u}{\partial v_1} = - \lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)}$$
-$$\frac{\partial v_1}{\partial x_1} = \frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}}$$
-$$\frac{\partial}{\partial x_1} = -\sum\frac{1}{u} (-\lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)})(\frac{-2(x_j - \bar{x}_1)}{\alpha_{1}^{2}})$$
+$$\frac{\partial v_1}{\partial \bar{x_1}} = \frac{-2(x_j - \bar{x_1})}{\alpha_{1}^{2}}$$
+$$\frac{\partial}{\partial \bar{x_1}} = -\sum\frac{1}{u} (-\lambda_1 c_1 \beta_1 v_{1}^{-(\beta_1 + 1)})(\frac{-2(x_j - \bar{x_1})}{\alpha_{1}^{2}})$$
 Simplifying to:
-$$\frac{\partial}{\partial x_1} = -\sum\frac{2\lambda_1 c_1 \beta_1(x_j - \bar{x}_1)}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
+$$\frac{\partial}{\partial \bar{x_1}} = -\sum\frac{2\lambda_1 c_1 \beta_1(x_j - \bar{x_1})}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
 
-A similar method is used to find the partial derivative with respect to $\bar{x}_2$, $\bar{y}_1$ and $\bar{y}_2$.
+A similar method is used to find the partial derivative with respect to $\bar{x_2}$, $\bar{y_1}$ and $\bar{y_2}$.
 
-$$\frac{\partial}{\partial x_2} = -\sum\frac{2\lambda_2 c_2 \beta_2(x_j - \bar{x}_2)}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
-$$\frac{\partial}{\partial y_1} = -\sum\frac{2\lambda_1 c_1 \beta_1(y_j - \bar{y}_1)}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
+$$\frac{\partial}{\partial \bar{x_2}} = -\sum\frac{2\lambda_2 c_2 \beta_2(x_j - \bar{x_2})}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
+$$\frac{\partial}{\partial \bar{y_1}} = -\sum\frac{2\lambda_1 c_1 \beta_1(y_j - \bar{y_1})}{u  v_{1}^{\beta_1 + 1} \alpha_{1}^{2}}$$
 
-$$\frac{\partial}{\partial y_2} = -\sum\frac{2\lambda_2 c_2 \beta_2(y_j - \bar{y}_2)}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
+$$\frac{\partial}{\partial \bar{y_1}} = -\sum\frac{2\lambda_2 c_2 \beta_2(y_j - \bar{y_2})}{u  v_{2}^{\beta_2 + 1} \alpha_{2}^{2}}$$
 For the partial derivative with respect to $\lambda_1$.
 $$\frac{\partial u}{\partial \lambda_1} = c_1  v_{1}^{-\beta_1}$$
 $$\frac{\partial}{\partial \lambda_1} = -\sum\frac{c_1 v_{1}^{-\beta_1}}{u}$$
@@ -189,24 +248,19 @@ Apply the product rule.
 $w_1' = -2\frac{\lambda_1(\beta_1 - 1)}{\pi}\alpha_{1}^{-3}$
 
 To find d' the quotient and chain rules are applied
-$$d_1' = \frac{2 \beta_1\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{v_1^{\beta_1 +1}\alpha_1^3}$$
+$$d_1' = \frac{2 \beta_1\left[(x-\bar{x_1})^{2}+(y-\bar{y_1})^{2}\right]}{v_1^{\beta_1 +1}\alpha_1^3}$$
 
+Applying the product rule:
+$$\frac{\partial u}{\partial \alpha_1} = \frac{\lambda_1(\beta_1 -1)}{\pi\alpha_{1}^{2}} \frac{2 \beta_1\left[(x-\bar{x_1})^{2}+(y-\bar{y_1})^{2}\right]}{v_1^{\beta_1 +1}\alpha_1^3} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{3}} \frac{1}{v_1^{\beta_1}}$$
 This can be simplified:
-$$d_1' = \frac{2 \beta_1}{v_1^{\beta_1 +1}\alpha_1} \frac{\left[(x-x_1)^{2}+(y-y_1)^{2}\right]}{\alpha_1^2}$$
-$$ = \frac{2 \beta_1}{v_1^{\beta_1} v_1 \alpha_1} v_1$$
-$$ = \frac{2 \beta_1}{v_1^{\beta_1}\alpha_1}$$
-Leading to:
-$$\frac{\partial u}{\partial \alpha_1} = \frac{\lambda_1(\beta_1 -1)}{\pi\alpha_{1}^{2}} \frac{2 \beta_1}{v_1^{\beta_1}\alpha_1} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi\alpha_{1}^{3}} \frac{1}{v_1^{\beta_1}}$$
-This can be simplified:
-$$\frac{\partial u}{\partial \alpha_1} = \frac{2 \lambda_1 \beta_1 (\beta_1 -1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} $$
-$$ = \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} (\beta_1 + 1)$$
-$$ = \frac{2 \lambda_1(\beta_1^2 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}}$$
+$$\frac{\partial u}{\partial \alpha_1} = \frac{2 \lambda_1 \beta_1 (\beta_1 -1)\left[(x-\bar{x_1})^{2}+(y-\bar{y_1})^{2}\right]}{\pi v_1^{\beta_1 + 1} \alpha_{1}^{5}} + \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} $$
+$$ = \frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} (\frac{\beta_1\left[(x-\bar{x_1})^{2}+(y-\bar{y_1})^{2}\right]}{v_1\alpha_1^2} + 1)$$
 
 Resulting in:
-$$\frac{\partial}{\partial \alpha_1} = -\sum \frac{2 \lambda_1(\beta_1^2 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3} u}$$
+$$\frac{\partial}{\partial \alpha_1} = -\sum \frac{\frac{2 \lambda_1(\beta_1 - 1)}{\pi v_1^{\beta_1} \alpha_{1}^{3}} (\frac{\beta_1\left[(x-\bar{x_1})^{2}+(y-\bar{y_1})^{2}\right]}{v_1\alpha_1^2} + 1)}{u}$$
 
 Similarly for $\alpha_2$
-$$\frac{\partial}{\partial \alpha_2} = -\sum \frac{2 \lambda_2(\beta_2^2 - 1)}{\pi v_2^{\beta_2} \alpha_{2}^{3} u}$$
+$$\frac{\partial}{\partial \alpha_2} = -\sum \frac{\frac{2 \lambda_2(\beta_2 - 1)}{\pi v_2^{\beta_2} \alpha_{2}^{3}} (\frac{\beta_2\left[(x-\bar{x_2})^{2}+(y-\bar{y_2})^{2}\right]}{v_2\alpha_2^2} + 1)}{u}$$
 
 For the partial derivative with respect to $\beta_1$.
 Rearrange the initial equation and
