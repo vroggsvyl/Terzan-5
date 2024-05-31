@@ -19,6 +19,7 @@ library(viridis)
 library(tidyr)
 library(fitdistrplus)
 library(goftest)
+library(DescTools)
 
 ## Color palette
 cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -26,8 +27,6 @@ cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 Importing the data.
 ```{r}
-i_am("1DModelling.Rmd")
-
 # import data from csv file
 Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 head(Terzan5)
@@ -159,13 +158,7 @@ histWithNormL2
 Visually Normal doesn't appear to be a good fit.
 Let's check numerically.
 
-View the qq-plot
-Figure 2.2.2
-```{r}
-quant <- qnorm(p = probs, mean = optimized_parameters[1], sd = optimized_parameters[2])
-qqplot(quant, sortNTL2, xlab = "Normal Distribution Theoretical Quantiles", ylab = "Data Quantiles")
-abline(a = 0, b = 1, col = "red")
-```
+
 
 
 GOODNESS OF FIT 
@@ -196,11 +189,7 @@ $K(x) := 1 - 2\sum_{j = 1}^{\infty}(-1)^{j-1}e^{-2j^2x^2}$
 Let F be the data in line 2
 Let $F_0$ be the modelled normal distribution
 
-Figure 2.2.3
-```{r}
-plot(ecdf(noTiesL2), main = "KS Test - Normal Distribution", ylab = "Probability")
-curve(pnorm(x, mean = 4115.19535, sd = 1.20138), add = TRUE, col = 4)
-```
+
 
 ```{r}
 ks.test(x = line2$x, y = "pnorm")
@@ -212,9 +201,23 @@ noTiesL2 <- unique(xl2)
 sortNTL2 <- sort(noTiesL2)
 ks.test(x = sortNTL2, y = "pnorm")
 ```
+
+Figure 2.2.3
+```{r}
+plot(ecdf(noTiesL2), main = "KS Test - Normal Distribution", ylab = "Probability")
+curve(pnorm(x, mean = 4115.19535, sd = 1.20138), add = TRUE, col = 4)
+```
+
 Strongly rejects the null hypothesis
 
-
+View the qq-plot
+Figure 2.2.2
+```{r}
+probs <- seq(0.01, 0.99, by = 0.01)
+quant <- qnorm(p = probs, mean = optimized_parameters[1], sd = optimized_parameters[2])
+qqplot(quant, sortNTL2, xlab = "Normal Distribution Theoretical Quantiles", ylab = "Data Quantiles")
+abline(a = 0, b = 1, col = "red")
+```
 
 Anderson Darling Test:
 ```{r}
@@ -280,10 +283,10 @@ Trying to use the optim function to estimate the parameters of the Moffat Model 
 Moffat <- function(parameters, x){
   amplitude <- parameters[[1]]
   mu <- parameters[[2]]
-  gamma <- parameters[[3]]
-  alpha <- parameters[[4]]
+  alpha <- parameters[[3]]
+  beta <- parameters[[4]]
 
-  predictedDensity <- amplitude*(1+((x-mu)^2/gamma^2))^(-alpha)
+  predictedDensity <- amplitude*(1+((x-mu)^2/alpha^2))^(-beta)
 }
 
 negLogLike <- function(parameters, x){
@@ -300,56 +303,48 @@ Figure 2.3.2
 #changing the value of the amplitude
 amplitude <- seq(0.25, 5, by = 0.25)
 
-i <- 1
 changingA <- vector("numeric", length = 20)
 
-while(i<=20){
+for(i in 1:20){
   parameters <- c(amplitude[[i]], 4115, 1, 1)
-  changingA[i] <- (negLogLike(parameters, xl2))
-  i <- i+1
+  changingA[i] <- (negLogLike(parameters, line2$x))
 }
 
 #changing the value of mu
 mu <- seq(4110, 4120, by = 0.5)
 
-i <- 1
 changingMu <- vector("numeric", length = 21)
 
-while(i<=21){
+for(i in 1:21){
   parameters <- c(0.5, mu[[i]], 1, 1)
-  changingMu[i] <- (negLogLike(parameters, xl2))
-  i <- i+1
-}
-
-#changing the value of gamma
-gamma <- seq(0.25, 10, by = 0.25)
-
-i <- 1
-changingGamma <- vector("numeric", length = 40)
-
-while(i<=40){
-  parameters <- c(0.5, 4115, gamma[[i]], 1)
-  changingGamma[i] <- (negLogLike(parameters, xl2))
-  i <- i+1
+  changingMu[i] <- (negLogLike(parameters, line2$x))
 }
 
 #changing the value of alpha
 alpha <- seq(0.25, 10, by = 0.25)
 
-i <- 1
 changingAlpha <- vector("numeric", length = 40)
 
-while(i<=40){
-  parameters <- c(0.5, 4115, 1, alpha[[i]])
-  changingAlpha[i] <- (negLogLike(parameters, xl2))
-  i <- i+1
+for(i in 1:40){
+  parameters <- c(0.5, 4115, alpha[[i]], 1)
+  changingAlpha[i] <- (negLogLike(parameters, line2$x))
+}
+
+#changing the value of beta
+beta <- seq(0.25, 10, by = 0.25)
+
+changingBeta <- vector("numeric", length = 40)
+
+for(i in 1:40){
+  parameters <- c(0.5, 4115, 1, beta[[i]])
+  changingAlpha[i] <- (negLogLike(parameters, line2$x))
 }
 
 par(mfrow = c(2,2))
 plot(amplitude, changingA, type = "l", xlab = "Amplitude", ylab = "Negative Log Likelihood")
 plot(mu, changingMu, type = "l", xlab = "Mu", ylab = "Negative Log Likelihood")
-plot(gamma, changingGamma, type = "l", xlab = "Gamma", ylab = "Negative Log Likelihood")
-plot(alpha, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+plot(gamma, changingAlpha, type = "l", xlab = "Alpha", ylab = "Negative Log Likelihood")
+plot(alpha, changingBeta, type = "l", xlab = "Beta", ylab = "Negative Log Likelihood")
 ```
 By the plots, it can be interpreted that optim likes to blow up the value of A, the amplitude. The larger the value of A, the smaller the Negative Log Likelihood. A similar thing happens for the value of gamma and the inverse happens for the value of alpha. This is not ideal.
 
@@ -486,7 +481,7 @@ optimPAR2
 Visualising the results
 Figure 2.3.3
 ```{r}
-optimDENS2 <- MOFFATPDF(optimPAR2, xVall2)
+optimDENS2 <- MOFFATPDF(optimPAR2, line2$x)
 ## plotting layers in ggplot
 ggplot(line2) + 
   geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
@@ -522,8 +517,6 @@ qmoffat <- function(p, params) {
   quantile <- uniroot(findRoot, interval = c(4000,4200))$root
   return(quantile)
 }
-
-probs <- seq(0.01, 0.99, by = 0.01)
 
 qmoffat(0.5, optimPAR2)
 
@@ -682,7 +675,7 @@ Visualising the results
 ```{r}
 optimDENS1 <- MOFFATPDF(optimPAR1, xVal)
 ## plotting layers in ggplot
-ggplot(line1) + 
+modelline1 <- ggplot(line1) + 
   geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
   stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR1), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
   ylab("p(x)") + 
@@ -706,7 +699,7 @@ optimPAR3
 ```{r}
 optimDENS3 <- MOFFATPDF(optimPAR3, xVal)
 ## plotting layers in ggplot
-ggplot(line3) + 
+modelline3 <- ggplot(line3) + 
   geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
   stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR3), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
   ylab("p(x)") + 
@@ -731,7 +724,7 @@ Visualising the results
 ```{r}
 optimDENS4 <- MOFFATPDF(optimPAR4, xVal)
 ## plotting layers in ggplot
-ggplot(line4) + 
+modelline4 <- ggplot(line4) + 
   geom_histogram(aes(x, y=after_stat(density), colour="data"),bins=50,fill=cbPalette[5]) + 
   stat_function(fun=MOFFATPDF,args = list(parameters = optimPAR4), n=1000, aes(colour="Moffat PDF"), linewidth=1.2) +
   ylab("p(x)") + 
@@ -740,3 +733,10 @@ ggplot(line4) +
     legend.justification = c("left"),
     legend.margin = margin(6, 6, 6, 6))
 ```
+
+```{r}
+modelline1
+modelline3
+modelline4
+```
+

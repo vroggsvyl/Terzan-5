@@ -27,8 +27,6 @@ library(tidyr)
 
 
 ```{r}
-i_am("Terzan5.Rmd")
-
 # import data from csv file
 Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)

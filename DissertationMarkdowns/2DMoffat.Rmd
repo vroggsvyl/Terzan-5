@@ -10,6 +10,7 @@ date: "2024-03-25"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r}
+library(here)
 library(ggplot2)
 library(plotly)
 library(ggpointdensity)
@@ -25,8 +26,6 @@ cbPalette <- c("#56B4E9", "#E69F00", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 ```
 Importing the data and transforming for stages required at this analysis step.
 ```{r}
-library(here)
-i_am("2D Moffat.Rmd")
 # laptop data from csv
 Terzan5 <- readr::read_csv(here("Data", "Terzan 5 X-ray events.csv"), col_types = list(.default = readr::col_guess()), )
 # head(Terzan5)
@@ -145,66 +144,56 @@ Investigating how the parameters effect the negative log likelihood function
 #changing the value of the amplitude
 amplitude <- seq(0.25, 5, by = 0.25)
 
-i <- 1
 changingA <- vector("numeric", length = 20)
 
-while(i<=20){
+for(i in 1:20){
   parameters <- c(amplitude[[i]], 1, 1, 1, 1)
   grid <- c(0,0)
   changingA[i] <- (NLL(grid, parameters))
-  i <- i+1
 }
 
 #changing the value of x0
 x0 <- seq(-5, 5, by = 0.5)
 
-i <- 1
 changingx0 <- vector("numeric", length = 21)
 
-while(i<=21){
+for(i in 1:21){
   parameters <- c(1, x0[[i]], 1, 1, 1)
   grid <- c(0,0)
   changingx0[i] <- (NLL(grid, parameters))
-  i <- i+1
 }
 
 #changing the value of y0
 y0 <- seq(-5, 5, by = 0.5)
 
-i <- 1
 changingy0 <- vector("numeric", length = 21)
 
-while(i<=21){
+for(i in 1:21){
   parameters <- c(1, 1, y0[[i]], 1, 1)
   grid <- c(0,0)
   changingy0[i] <- (NLL(grid, parameters))
-  i <- i+1
 }
 
 #changing the value of alpha
 alpha <- seq(0.25, 10, by = 0.25)
 
-i <- 1
 changingAlpha <- vector("numeric", length = 40)
 
-while(i<=40){
+for(i in 1:40){
   parameters <- c(1, 1, 1, alpha[[i]], 1)
   grid <- c(0,0)
   changingAlpha[i] <- (NLL(grid, parameters))
-  i <- i+1
 }
 
 #changing the value of beta
 beta <- seq(0.25, 10, by = 0.25)
 
-i <- 1
 changingBeta <- vector("numeric", length = 40)
 
-while(i<=40){
+for(i in 1:40){
   parameters <- c(1, 1, 1, 1, beta[[i]])
   grid <- c(0,0)
   changingBeta[i] <- (NLL(grid, parameters))
-  i <- i+1
 }
 
 par(mfrow = c(2,3))
@@ -283,12 +272,6 @@ NLL2D <- function(parameters, x, y){
 }
 ```
 
-```{r}
-NLL2D2 <- function(parameters, grid){
-  predictedDens <- Moffat2D(grid, parameters)
-  return(-sum(log(predictedDens)))
-}
-```
 
 
 ```{r}
@@ -316,17 +299,6 @@ initGuess <- c(x0 = mean(POI1$x), y0 = mean(POI1$y), alpha = 1, beta = 2)
 lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
 
 resultPOI1 <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, x = POI1$x, y = POI1$y, method = "L-BFGS-B", lower = lowerBounds)
-resultPOI1
-optimPOI1Par <- resultPOI1$par
-optimPOI1Par
-```
-```{r}
-initGuess <- c(x0 = mean(POI1$x), y0 = mean(POI1$y), alpha = 1, beta = 2)
-lowerBounds <- c(0, 0, 1e-6, 1+1e-6)
-
-xy <- expand.grid(POI1$x, POI1$y)
-
-resultPOI1 <- optim(par = initGuess, fn = NLL2D, gr = deriv2DNLL, grid = xy, method = "L-BFGS-B", lower = lowerBounds)
 resultPOI1
 optimPOI1Par <- resultPOI1$par
 optimPOI1Par
@@ -363,33 +335,7 @@ contourData <- ggplot_build(contours)$data[[1]] #extracting the contours (from t
 combined <- model + geom_path(data = contourData, aes(x = x, y = y, group = group), color = "red", alpha = 0.5)
 combined
 ```
-Zooming in on this point of interest to try to get a clearer picture.
-```{r}
-library(ggExtra)
-#refiltering the POI1
-POI1ZOOM <- POI1 %>%
-  filter(x>4167 & x<4177 & y>4183 & y<4193)
 
-#creating a point density plot
-modelZoomedInPOI1 <- ggplot(POI1ZOOM, aes(x,y)) +
-  geom_pointdensity(adjust = 0.05, size = 0.1, shape = "1") + 
-  scale_color_viridis(direction = -1, option = "B", trans = "log", breaks = c(10, 100, 1000)) + 
-  coord_fixed()
-
-contourData <- ggplot_build(contours)$data[[1]]
-
-#combining the contour plot and the point density plot
-combined <- modelZoomedInPOI1 + geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[5], alpha = 1, linewidth= 0.3)
-
-#viewing
-ggMarginal(combined, type = "histogram")
-
-#plotting contours on the raw data
-ggplot(POI1ZOOM, aes(x,y)) +
-  geom_point(size = 0.2) + 
-  geom_path(data = contourData, aes(x = x, y = y, group = group), color = cbPalette[2], alpha = 1) +
-  coord_fixed()
-```
 Add the marginal PDF of the model on top of the histogram
 
 ```{r}
@@ -428,7 +374,7 @@ par(pty = "s")
 image(xRange, yRange, zPOI2Matrix, xlab = "x", ylab = "y", main = "2D Moffat")
 
 contours <- ggplot(grid, aes(x = x, y = y)) + 
-  stat_contour(aes(z = zPOI2), bins = 40) 
+  stat_contour(aes(z = zPOI2), bins = 30) 
 
 contours
 
